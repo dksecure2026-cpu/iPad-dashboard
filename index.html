@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- This meta tag ensures it looks like a native app on the iPad screen -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Logbook Dashboard</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f4f7;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 600px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      /* Prevents iPad from zooming in on input tap */
+      appearance: none;
+    }
+    textarea {
+      resize: vertical;
+      height: 100px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 25px;
+      cursor: pointer;
+    }
+    button:active {
+      background-color: #005bb5;
+    }
+    #status-message {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>New Entry</h1>
+   
+    <form id="logForm">
+      <!-- Column B -->
+      <label for="name">Name</label>
+      <input type="text" id="name" required placeholder="Enter your name">
+
+      <!-- Column C -->
+      <label for="date">Today's Date</label>
+      <input type="date" id="date" required>
+
+      <!-- Column D -->
+      <label for="type">Type of Entry</label>
+      <select id="type" required>
+        <option value="" disabled selected>Select an option...</option>
+        <option value="Security Log">Security Log</option>
+        <option value="Requisition">Requisition</option>
+        <option value="Incident Report">Incident Report</option>
+        <option value="General Note">General Note</option>
+      </select>
+
+      <!-- Column E -->
+      <label for="remarks">Remarks</label>
+      <textarea id="remarks" required placeholder="Provide as much information as possible..."></textarea>
+
+      <!-- Column F -->
+      <label for="status">Status</label>
+      <select id="status" required>
+        <option value="Open">Open</option>
+        <option value="Pending">Pending</option>
+        <option value="Closed">Closed</option>
+      </select>
+
+      <!-- Column G -->
+      <label for="evidence">Supporting Evidence / Link</label>
+      <input type="text" id="evidence" placeholder="Paste a link to photos or documents">
+      <small style="color: #666; display: block; margin-top: 5px;">
+        *Direct photo uploads require an advanced script. For now, paste a Google Drive or cloud link here.
+      </small>
+
+      <button type="submit" id="submitBtn">Submit Entry</button>
+    </form>
+   
+    <div id="status-message"></div>
+  </div>
+
+  <script>
+    // Automatically fill today's date in the date picker
+    document.getElementById('date').valueAsDate = new Date();
+
+    document.getElementById("logForm").addEventListener("submit", function(event) {
+      event.preventDefault(); // Stop page from refreshing
+
+      const btn = document.getElementById("submitBtn");
+      const statusMsg = document.getElementById("status-message");
+     
+      btn.innerText = "Sending...";
+      btn.style.backgroundColor = "#ccc";
+      statusMsg.innerText = "";
+
+      // Gather the data from the form
+      const payload = {
+        column2: document.getElementById("name").value,
+        column3: document.getElementById("date").value,
+        column4: document.getElementById("type").value,
+        column5: document.getElementById("remarks").value,
+        column6: document.getElementById("status").value,
+        column7: document.getElementById("evidence").value
+      };
+
+      // REPLACE THIS URL with your copied Google Apps Script URL
+      const webAppUrl = "https://script.google.com/macros/s/AKfycbzkdbiIr8Fgv90FBjojyabQUXhIjZCgvYr-CeQfRjjowrjocXu6Mr3eD9BEANs8dX1kwA/exec";
+
+      fetch(webAppUrl, {
+        method: "POST",
+        mode: "no-cors", // Required to bypass strict browser security for Google Scripts
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        // Because of "no-cors", we can't read Google's exact success message,
+        // but if it resolves, it generally means the network request was sent.
+        btn.innerText = "Submit Entry";
+        btn.style.backgroundColor = "#007aff";
+        statusMsg.innerText = "Entry successfully logged!";
+        statusMsg.className = "success";
+        document.getElementById("logForm").reset();
+        document.getElementById('date').valueAsDate = new Date(); // Reset date
+       
+        // Clear success message after 3 seconds
+        setTimeout(() => { statusMsg.innerText = ""; }, 3000);
+      })
+      .catch((error) => {
+        btn.innerText = "Submit Entry";
+        btn.style.backgroundColor = "#007aff";
+        statusMsg.innerText = "Error sending data. Check your internet connection.";
+        statusMsg.className = "error";
+      });
+    });
+  </script>
+
+</body>
+</html>
