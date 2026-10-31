@@ -30,12 +30,15 @@
     <button class="dash-btn" onclick="openForm('Requisition')">Requisition</button>
     <button class="dash-btn" onclick="openForm('Incident Report')">Incident Report</button>
     <button class="dash-btn" onclick="openForm('General Note')">General Note</button>
+    
+    <!-- YOUR NEW CALENDAR BUTTON -->
+    <button class="dash-btn" style="background-color: #007aff;" onclick="window.location.href='https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com'">Open Calendar</button>
   </div>
 
   <div id="form-view" class="card">
     <button class="back-btn" onclick="goBack()">← Back to Menu</button>
     <h1 id="form-title">New Entry</h1>
-   
+    
     <form id="logForm">
       <label for="name">Name</label>
       <input type="text" id="name" required>
@@ -62,12 +65,12 @@
       </select>
 
       <label>Supporting Evidence (Choose ONE)</label>
-     
+      
       <!-- Option 1: Camera / File Upload -->
       <input type="file" id="photo-upload" accept="image/*">
-     
+      
       <div class="divider">OR</div>
-     
+      
       <!-- Option 2: Paste a Link -->
       <input type="text" id="evidence" placeholder="Paste a web link here...">
 
@@ -78,7 +81,7 @@
 
   <script>
     document.getElementById('date').valueAsDate = new Date();
-   
+    
     // Variables to hold image data
     let base64Image = "";
     let fileName = "";
@@ -115,10 +118,10 @@
     document.getElementById("logForm").addEventListener("submit", function(event) {
       event.preventDefault();
       const btn = document.getElementById("submitBtn");
-     
+      
       btn.innerText = "Uploading... (This may take a moment)";
       btn.style.backgroundColor = "#ccc";
-     
+      
       const payload = {
         column2: document.getElementById("name").value,
         column3: document.getElementById("date").value,
