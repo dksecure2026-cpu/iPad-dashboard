@@ -7,6 +7,8 @@
   <style>
     body { font-family: -apple-system, sans-serif; background-color: #f4f4f7; padding: 20px; display: flex; justify-content: center; }
     .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 600px; }
+    /* Wider card specifically for the calendar */
+    .calendar-card { max-width: 900px; }
     h1 { text-align: center; color: #333; margin-top: 0; }
     .dash-btn { width: 100%; padding: 20px; background-color: #333; color: white; border: none; border-radius: 12px; font-size: 20px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
     .dash-btn:active { background-color: #000; }
@@ -16,14 +18,16 @@
     textarea { resize: vertical; height: 100px; }
     input[type="file"] { padding: 10px; background: #eef2f5; border: 1px dashed #ccc; }
     .submit-btn { width: 100%; padding: 15px; background-color: #007aff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 25px; cursor: pointer; }
-    #form-view { display: none; }
+    #form-view, #calendar-view { display: none; }
     #status-message { text-align: center; margin-top: 15px; font-weight: bold; }
     .error { color: red; }
     .divider { text-align: center; margin: 15px 0; font-weight: bold; color: #888; font-size: 14px; }
+    iframe { border: none; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
 
+  <!-- 1. MAIN DASHBOARD VIEW -->
   <div id="dashboard-view" class="card">
     <h1>Dashboard Menu</h1>
     <button class="dash-btn" onclick="openForm('Security Log')">Security Log</button>
@@ -31,10 +35,11 @@
     <button class="dash-btn" onclick="openForm('Incident Report')">Incident Report</button>
     <button class="dash-btn" onclick="openForm('General Note')">General Note</button>
     
-    <!-- YOUR NEW CALENDAR BUTTON -->
-    <button class="dash-btn" style="background-color: #007aff;" onclick="window.location.href='https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com'">Open Calendar</button>
+    <!-- Updated to trigger openCalendar() instead of changing the website URL -->
+    <button class="dash-btn" style="background-color: #007aff;" onclick="openCalendar()">Open Calendar</button>
   </div>
 
+  <!-- 2. FORM ENTRY VIEW -->
   <div id="form-view" class="card">
     <button class="back-btn" onclick="goBack()">← Back to Menu</button>
     <h1 id="form-title">New Entry</h1>
@@ -65,13 +70,8 @@
       </select>
 
       <label>Supporting Evidence (Choose ONE)</label>
-      
-      <!-- Option 1: Camera / File Upload -->
       <input type="file" id="photo-upload" accept="image/*">
-      
       <div class="divider">OR</div>
-      
-      <!-- Option 2: Paste a Link -->
       <input type="text" id="evidence" placeholder="Paste a web link here...">
 
       <button type="submit" id="submitBtn" class="submit-btn">Submit Entry</button>
@@ -79,15 +79,19 @@
     <div id="status-message"></div>
   </div>
 
+  <!-- 3. EMBEDDED CALENDAR VIEW (NEW) -->
+  <div id="calendar-view" class="card calendar-card">
+    <button class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%23ffffff&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
+  </div>
+
   <script>
     document.getElementById('date').valueAsDate = new Date();
     
-    // Variables to hold image data
     let base64Image = "";
     let fileName = "";
     let mimeType = "";
 
-    // Listen for a photo being taken or selected
     document.getElementById('photo-upload').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
@@ -95,7 +99,6 @@
         mimeType = file.type;
         const reader = new FileReader();
         reader.onload = function(event) {
-          // Strip the metadata prefix so Google Apps Script can decode it
           base64Image = event.target.result.split(',')[1];
         };
         reader.readAsDataURL(file);
@@ -104,14 +107,24 @@
 
     function openForm(entryType) {
       document.getElementById('dashboard-view').style.display = 'none';
+      document.getElementById('calendar-view').style.display = 'none';
       document.getElementById('form-view').style.display = 'block';
       document.getElementById('type').value = entryType;
       document.getElementById('form-title').innerText = "New " + entryType;
     }
 
+    // Opens the new embedded calendar
+    function openCalendar() {
+      document.getElementById('dashboard-view').style.display = 'none';
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('calendar-view').style.display = 'block';
+    }
+
+    // Returns to the main menu from either the form or the calendar
     function goBack() {
       document.getElementById('dashboard-view').style.display = 'block';
       document.getElementById('form-view').style.display = 'none';
+      document.getElementById('calendar-view').style.display = 'none';
       document.getElementById('status-message').innerText = "";
     }
 
@@ -129,13 +142,11 @@
         column5: document.getElementById("remarks").value,
         column6: document.getElementById("status").value,
         column7: document.getElementById("evidence").value,
-        // Send the image data
         imageBase64: base64Image,
         fileName: fileName,
         mimeType: mimeType
       };
 
-      // PASTE YOUR URL HERE
       const webAppUrl = "https://script.google.com/macros/s/AKfycbwi7WXLMhUTBRClJTCv4UxMK7NXMCh1yvM1brPyE7KTt2LpSsVnNYcqNONAkPryd5VklQ/exec";
 
       fetch(webAppUrl, {
@@ -148,7 +159,7 @@
         btn.style.backgroundColor = "#007aff";
         document.getElementById("logForm").reset();
         document.getElementById('date').valueAsDate = new Date();
-        base64Image = ""; // Clear the image data
+        base64Image = ""; 
         fileName = "";
         mimeType = "";
         goBack();
