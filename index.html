@@ -4,24 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>iPad Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body { font-family: -apple-system, sans-serif; background-color: #f4f4f7; padding: 20px; display: flex; justify-content: center; }
-    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 600px; }
+    body { font-family: -apple-system, sans-serif; background-color: #f4f4f7; padding: 20px; display: flex; justify-content: center; margin: 0; }
+    .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); width: 100%; max-width: 600px; box-sizing: border-box; }
     .wide-card { max-width: 900px; }
-    h1 { text-align: center; color: #333; margin-top: 0; }
-    .dash-btn { width: 100%; padding: 20px; background-color: #333; color: white; border: none; border-radius: 12px; font-size: 20px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
+    h1 { text-align: center; color: #222; margin-top: 0; }
+    .dash-btn { width: 100%; padding: 18px; background-color: #333; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
     .dash-btn:active { background-color: #000; }
-    .back-btn { width: auto; padding: 10px 15px; background-color: #e0e0e0; color: #333; border: none; border-radius: 8px; font-size: 16px; margin-bottom: 20px; font-weight: bold; cursor: pointer; }
-    label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #555; }
-    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; appearance: none; }
-    textarea { resize: vertical; height: 100px; }
-    input[type="file"] { padding: 10px; background: #eef2f5; border: 1px dashed #ccc; }
-    .submit-btn { width: 100%; padding: 15px; background-color: #007aff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 25px; cursor: pointer; }
-    #form-view, #calendar-view, #map-view { display: none; }
-    #status-message { text-align: center; margin-top: 15px; font-weight: bold; }
-    .error { color: red; }
-    .divider { text-align: center; margin: 15px 0; font-weight: bold; color: #888; font-size: 14px; }
-    iframe { border: none; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .back-btn { padding: 10px 14px; background-color: #e5e5ea; color: #111; border: none; border-radius: 8px; font-size: 15px; margin-bottom: 15px; font-weight: 600; cursor: pointer; }
+    label { font-weight: 600; display: block; margin-top: 14px; margin-bottom: 6px; color: #444; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; font-family: inherit; }
+    textarea { resize: vertical; min-height: 90px; }
+    input[type="file"] { padding: 10px; background: #f8f9fa; border: 1px dashed #b0b0b0; }
+    .submit-btn { width: 100%; padding: 16px; background-color: #007aff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    #form-view, #calendar-view, #map-view, #recce-view { display: none; }
+    #status-message, #recce-status-message { text-align: center; margin-top: 14px; font-weight: bold; }
+    .error { color: #d93025; }
+    .divider { text-align: center; margin: 12px 0; font-weight: bold; color: #888; font-size: 13px; }
+    iframe { border: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    #recce-map-container { height: 280px; width: 100%; border-radius: 8px; border: 1px solid #ccc; margin-top: 6px; }
+    .coord-display { font-size: 13px; color: #555; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -34,15 +38,52 @@
     <button class="dash-btn" onclick="openForm('Incident Report')">Incident Report</button>
     <button class="dash-btn" onclick="openForm('General Note')">General Note</button>
     
+    <button class="dash-btn" style="background-color: #af52de;" onclick="openRecce()">New Recce Report</button>
     <button class="dash-btn" style="background-color: #007aff;" onclick="openCalendar()">Open Calendar</button>
     <button class="dash-btn" style="background-color: #34c759;" onclick="openMap()">Open Map</button>
   </div>
 
-  <!-- 2. FORM ENTRY VIEW -->
+  <!-- 2. RECCE FORM VIEW -->
+  <div id="recce-view" class="card wide-card">
+    <button class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <h1>Recce Report</h1>
+    <form id="recceForm">
+      <label for="recce-location">Location Name</label>
+      <input type="text" id="recce-location" placeholder="e.g. MARK SWIMMING COUNTRY CLUB" required>
+
+      <label for="recce-officer">Officer Name</label>
+      <input type="text" id="recce-officer" placeholder="Your name" required>
+
+      <label for="recce-date">Date</label>
+      <input type="date" id="recce-date" required>
+
+      <label for="recce-desc">Description / Operational Notes</label>
+      <textarea id="recce-desc" placeholder="35 min drive - collection back to villa normally 1800..." required></textarea>
+
+      <label>Pin Location on Map (Tap map or use GPS)</label>
+      <button type="button" class="back-btn" style="margin-bottom: 4px;" onclick="locateUser()">📍 Locate Me</button>
+      <div id="recce-map-container"></div>
+      <div id="coords-display" class="coord-display">No pin selected yet.</div>
+
+      <label for="recce-gmaps">Google Maps URL</label>
+      <input type="text" id="recce-gmaps" placeholder="Auto-fills from pin or paste manual link" required>
+
+      <label for="recce-waze">Waze Maps URL (Optional)</label>
+      <input type="text" id="recce-waze" placeholder="https://waze.com/ul/...">
+
+      <label>Photos (Up to 10)</label>
+      <input type="file" id="recce-photos" accept="image/*" multiple>
+      <div id="photo-count" style="font-size: 13px; color: #666; margin-top: 4px;">0 photos selected</div>
+
+      <button type="submit" id="recceSubmitBtn" class="submit-btn" style="background-color: #af52de;">Submit & Generate PDF</button>
+    </form>
+    <div id="recce-status-message"></div>
+  </div>
+
+  <!-- 3. STANDARD LOG FORM VIEW -->
   <div id="form-view" class="card">
     <button class="back-btn" onclick="goBack()">← Back to Menu</button>
     <h1 id="form-title">New Entry</h1>
-    
     <form id="logForm">
       <label for="name">Name</label>
       <input type="text" id="name" required>
@@ -78,13 +119,13 @@
     <div id="status-message"></div>
   </div>
 
-  <!-- 3. EMBEDDED CALENDAR VIEW -->
+  <!-- 4. EMBEDDED CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
     <button class="back-btn" onclick="goBack()">← Back to Menu</button>
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%23ffffff&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 4. EMBEDDED MAP VIEW -->
+  <!-- 5. EMBEDDED MAP VIEW (GOOGLE MY MAPS) -->
   <div id="map-view" class="card wide-card">
     <button class="back-btn" onclick="goBack()">← Back to Menu</button>
     <iframe src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
@@ -94,22 +135,45 @@
     const webAppUrl = "https://script.google.com/macros/s/AKfycbxeViHpC9rG-1Okmy98YNcblez9VQAzlAnlb6BJVv-H2FaUkpAjm79njidsjE76UU/exec";
 
     document.getElementById('date').valueAsDate = new Date();
-    
-    let base64Image = "";
-    let fileName = "";
-    let mimeType = "";
+    document.getElementById('recce-date').valueAsDate = new Date();
 
+    let base64Image = "", fileName = "", mimeType = "";
+    let reccePhotos = [];
+    let recceMap, recceMarker, selectedLat = null, selectedLng = null;
+
+    // Single Photo Listener (Standard Logs)
     document.getElementById('photo-upload').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         fileName = file.name;
         mimeType = file.type;
         const reader = new FileReader();
-        reader.onload = function(event) {
-          base64Image = event.target.result.split(',')[1];
-        };
+        reader.onload = ev => { base64Image = ev.target.result.split(',')[1]; };
         reader.readAsDataURL(file);
       }
+    });
+
+    // Multi-Photo Listener (Recce Form - Up to 10)
+    document.getElementById('recce-photos').addEventListener('change', async function(e) {
+      const files = Array.from(e.target.files).slice(0, 10);
+      reccePhotos = [];
+      document.getElementById('photo-count').innerText = `${files.length} photo(s) selected`;
+
+      for (let f of files) {
+        const b64 = await toBase64(f);
+        reccePhotos.push({
+          base64: b64.split(',')[1],
+          mimeType: f.type,
+          name: f.name
+        });
+      }
+    });
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
     });
 
     function hideAllViews() {
@@ -117,6 +181,7 @@
       document.getElementById('form-view').style.display = 'none';
       document.getElementById('calendar-view').style.display = 'none';
       document.getElementById('map-view').style.display = 'none';
+      document.getElementById('recce-view').style.display = 'none';
     }
 
     function openForm(entryType) {
@@ -136,20 +201,114 @@
       document.getElementById('map-view').style.display = 'block';
     }
 
+    function openRecce() {
+      hideAllViews();
+      document.getElementById('recce-view').style.display = 'block';
+      setTimeout(initRecceMap, 150);
+    }
+
     function goBack() {
       hideAllViews();
       document.getElementById('dashboard-view').style.display = 'block';
       document.getElementById('status-message').innerText = "";
+      document.getElementById('recce-status-message').innerText = "";
     }
 
+    // Leaflet Pin Dropping
+    function initRecceMap() {
+      if (recceMap) {
+        recceMap.invalidateSize();
+        return;
+      }
+      recceMap = L.map('recce-map-container').setView([32.0853, 34.7818], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(recceMap);
+
+      recceMap.on('click', function(e) {
+        setPin(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    function setPin(lat, lng) {
+      selectedLat = lat.toFixed(6);
+      selectedLng = lng.toFixed(6);
+      document.getElementById('coords-display').innerText = `Pin: ${selectedLat}, ${selectedLng}`;
+      document.getElementById('recce-gmaps').value = `https://www.google.com/maps?q=${selectedLat},${selectedLng}`;
+      document.getElementById('recce-waze').value = `https://waze.com/ul?ll=${selectedLat},${selectedLng}&navigate=yes`;
+
+      if (recceMarker) {
+        recceMarker.setLatLng([selectedLat, selectedLng]);
+      } else {
+        recceMarker = L.marker([selectedLat, selectedLng]).addTo(recceMap);
+      }
+    }
+
+    function locateUser() {
+      if (!navigator.geolocation) return alert("Geolocation not supported.");
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        recceMap.setView([lat, lng], 15);
+        setPin(lat, lng);
+      }, err => alert("GPS Error: " + err.message));
+    }
+
+    // Recce Form Submit
+    document.getElementById("recceForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const btn = document.getElementById("recceSubmitBtn");
+      btn.innerText = "Generating PDF & Uploading...";
+      btn.style.backgroundColor = "#ccc";
+
+      const payload = {
+        formType: "Recce",
+        locationName: document.getElementById("recce-location").value,
+        officer: document.getElementById("recce-officer").value,
+        date: document.getElementById("recce-date").value,
+        description: document.getElementById("recce-desc").value,
+        googleMapsUrl: document.getElementById("recce-gmaps").value,
+        wazeUrl: document.getElementById("recce-waze").value,
+        lat: selectedLat,
+        lng: selectedLng,
+        photos: reccePhotos
+      };
+
+      fetch(webAppUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        btn.innerText = "Submit & Generate PDF";
+        btn.style.backgroundColor = "#af52de";
+        document.getElementById("recceForm").reset();
+        document.getElementById('photo-count').innerText = "0 photos selected";
+        document.getElementById('recce-date').valueAsDate = new Date();
+        reccePhotos = [];
+        if (recceMarker) recceMap.removeLayer(recceMarker);
+        recceMarker = null;
+        selectedLat = null;
+        selectedLng = null;
+        goBack();
+      }).catch(err => {
+        btn.innerText = "Submit & Generate PDF";
+        btn.style.backgroundColor = "#af52de";
+        document.getElementById('recce-status-message').innerText = "Upload error: " + err;
+        document.getElementById('recce-status-message').className = "error";
+      });
+    });
+
+    // Standard Log Submit
     document.getElementById("logForm").addEventListener("submit", function(event) {
       event.preventDefault();
       const btn = document.getElementById("submitBtn");
-      
-      btn.innerText = "Uploading... (This may take a moment)";
+      btn.innerText = "Uploading...";
       btn.style.backgroundColor = "#ccc";
-      
+
       const payload = {
+        formType: "Log",
         column2: document.getElementById("name").value,
         column3: document.getElementById("date").value,
         column4: document.getElementById("type").value,
@@ -171,9 +330,7 @@
         btn.style.backgroundColor = "#007aff";
         document.getElementById("logForm").reset();
         document.getElementById('date').valueAsDate = new Date();
-        base64Image = ""; 
-        fileName = "";
-        mimeType = "";
+        base64Image = ""; fileName = ""; mimeType = "";
         goBack();
       }).catch(() => {
         btn.innerText = "Submit Entry";
