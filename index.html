@@ -273,10 +273,9 @@
         return;
       }
       recceMap = L.map('recce-map-container').setView([32.0853, 34.7818], 11);
-     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '© OpenStreetMap © CARTO'
+        attribution: 'Tiles &copy; Esri'
       }).addTo(recceMap);
 
       recceMap.on('click', function(e) {
