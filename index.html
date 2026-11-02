@@ -153,23 +153,28 @@
       }
     });
 
-    // Multi-Photo Listener (Recce Form - Up to 10)
+    // Multi-Photo Listener (Recce Form - Up to 10 with compression)
     document.getElementById('recce-photos').addEventListener('change', async function(e) {
       const files = Array.from(e.target.files).slice(0, 10);
       reccePhotos = [];
-      document.getElementById('photo-count').innerText = `${files.length} photo(s) selected`;
+      document.getElementById('photo-count').innerText = `${files.length} photo(s) selected (Compressing...)`;
 
       for (let f of files) {
-        const b64 = await toBase64(f);
-        reccePhotos.push({
-          base64: b64.split(',')[1],
-          mimeType: f.type,
-          name: f.name
-        });
+        try {
+          const b64 = await toBase64(f);
+          reccePhotos.push({
+            base64: b64.split(',')[1],
+            mimeType: "image/jpeg",
+            name: f.name
+          });
+        } catch (err) {
+          console.error("Compression failed for: " + f.name, err);
+        }
       }
+      document.getElementById('photo-count').innerText = `${reccePhotos.length} photo(s) ready`;
     });
 
-   const toBase64 = file => new Promise((resolve, reject) => {
+    const toBase64 = file => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = e => {
@@ -194,9 +199,7 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Compress to 70% quality JPEG
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(compressedDataUrl);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.onerror = err => reject(err);
       };
@@ -297,17 +300,18 @@
         description: document.getElementById("recce-desc").value,
         googleMapsUrl: document.getElementById("recce-gmaps").value,
         wazeUrl: document.getElementById("recce-waze").value,
-        lat: selectedLat,
-        lng: selectedLng,
+        lat: selectedLat || "0",
+        lng: selectedLng || "0",
         photos: reccePhotos
       };
 
       fetch(webAppUrl, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(payload)
       }).then(() => {
+        alert("Submission sent successfully! Check Google Sheets.");
         btn.innerText = "Submit & Generate PDF";
         btn.style.backgroundColor = "#af52de";
         document.getElementById("recceForm").reset();
@@ -320,6 +324,7 @@
         selectedLng = null;
         goBack();
       }).catch(err => {
+        alert("Submission network error: " + err.message);
         btn.innerText = "Submit & Generate PDF";
         btn.style.backgroundColor = "#af52de";
         document.getElementById('recce-status-message').innerText = "Upload error: " + err;
@@ -350,16 +355,18 @@
       fetch(webAppUrl, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(payload)
       }).then(() => {
+        alert("Log entry sent successfully!");
         btn.innerText = "Submit Entry";
         btn.style.backgroundColor = "#007aff";
         document.getElementById("logForm").reset();
         document.getElementById('date').valueAsDate = new Date();
         base64Image = ""; fileName = ""; mimeType = "";
         goBack();
-      }).catch(() => {
+      }).catch(err => {
+        alert("Log error: " + err.message);
         btn.innerText = "Submit Entry";
         btn.style.backgroundColor = "#007aff";
         document.getElementById('status-message').innerText = "Error sending data.";
