@@ -403,8 +403,8 @@
     // Real-World Street Routing via OSRM Foot Profile
     async function updateRouteAndDistance() {
       const display = document.getElementById('coords-display');
-      let statusHtml = `📍 Venue: ${venueCoords ? `${venueCoords.lat},${venueCoords.lng}` : 'Not set'}<br>` +
-                       `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat},${parkingCoords.lng}` : 'Not set'}`;
+      let statusHtml = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set'}<br>` +
+                       `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set'}`;
 
       if (venueCoords && parkingCoords) {
         display.innerHTML = statusHtml + `<br>🚶 <em>Calculating street walk route...</em>`;
@@ -717,4 +717,9 @@
         btn.innerText = "Submit Entry";
         btn.style.backgroundColor = "#007aff";
         document.getElementById('status-message').innerText = "Error sending data.";
-        document
+        document.getElementById('status-message').className = "error";
+      });
+    });
+  </script>
+</body>
+</html>
