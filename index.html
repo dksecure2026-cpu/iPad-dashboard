@@ -24,7 +24,7 @@
     .error { color: #d93025; }
     .divider { text-align: center; margin: 12px 0; font-weight: bold; color: #888; font-size: 13px; }
     iframe { border: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    #recce-map-container { height: 320px; width: 100%; border-radius: 8px; border: 1px solid #ccc; margin-top: 6px; }
+    #recce-map-container { height: 340px; width: 100%; border-radius: 8px; border: 1px solid #ccc; margin-top: 6px; cursor: crosshair; }
     .coord-display { font-size: 13px; color: #444; margin-top: 6px; line-height: 1.5; background: #fafafa; padding: 8px 10px; border-radius: 6px; border: 1px solid #e5e5ea; }
     .confirm-box { background: #f8f9fa; border: 1px solid #dcdce0; border-radius: 8px; padding: 14px; margin-top: 20px; }
     .confirm-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin: 0; font-size: 15px; color: #222; font-weight: 500; }
@@ -73,21 +73,22 @@
       <!-- Address Search Bar -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <input type="text" id="map-search-input" placeholder="Search address or venue name..." style="flex: 1; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #ccc;">
-        <button type="button" class="back-btn" style="margin: 0; padding: 10px 14px; white-space: nowrap;" onclick="searchAddress()">🔍 Find</button>
+        <button type="button" class="back-btn" style="margin: 0; padding: 10px 14px; white-space: nowrap;" onclick="searchAddress()">🔍 Find & Pin</button>
       </div>
 
-      <!-- Quick Action Buttons -->
+      <!-- Action Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0;" onclick="locateUser()">📍 GPS to Venue</button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0;" onclick="clearLocation()">✕ Reset Map</button>
+        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">🎯 Pin Current Location to Venue</button>
+        <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset</button>
       </div>
 
+      <!-- Map Display -->
       <div id="recce-map-container"></div>
       
       <!-- Coordinate Status Display -->
       <div id="coords-display" class="coord-display">
-        📍 Venue: Not set<br>
-        🅿️ Parking: Not set (Tap "Set Parking Pin" then click the map)
+        📍 Venue: Not set (Tap map or search)<br>
+        🅿️ Parking: Not set (Switch mode, then tap map)
       </div>
 
       <label for="recce-venue-gmaps">Venue Google Maps URL</label>
@@ -306,22 +307,25 @@
       document.getElementById('recce-status-message').innerText = "";
     }
 
-    // Toggle Pin Selection Mode
+    // Toggle Pin Mode (Venue vs Parking)
     function setPinMode(mode) {
       currentPinMode = mode;
       const btnVenue = document.getElementById('btn-mode-venue');
       const btnParking = document.getElementById('btn-mode-parking');
+      const btnGps = document.getElementById('btn-gps-action');
 
       if (mode === 'venue') {
         btnVenue.style.backgroundColor = '#333';
         btnVenue.style.color = '#fff';
         btnParking.style.backgroundColor = '#e5e5ea';
         btnParking.style.color = '#111';
+        btnGps.innerText = "🎯 Pin Current Location to Venue";
       } else {
         btnParking.style.backgroundColor = '#007aff';
         btnParking.style.color = '#fff';
         btnVenue.style.backgroundColor = '#e5e5ea';
         btnVenue.style.color = '#111';
+        btnGps.innerText = "🎯 Pin Current Location to Parking";
       }
     }
 
@@ -330,12 +334,13 @@
       if (!container) return;
 
       if (!recceMap) {
-        recceMap = L.map('recce-map-container').setView([32.0853, 34.7818], 11);
+        recceMap = L.map('recce-map-container').setView([32.0853, 34.7818], 12);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
           maxZoom: 19,
           attribution: 'Tiles &copy; Esri'
         }).addTo(recceMap);
 
+        // Map Click Listener
         recceMap.on('click', function(e) {
           handleMapClick(e.latlng.lat, e.latlng.lng);
         });
@@ -352,27 +357,36 @@
       updateDisplay();
     }
 
-    // Venue Pin: Generates ONLY Venue Google Maps Link
+    // Set Venue Pin
     function setVenuePin(lat, lng) {
       venueCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
       
+      const redIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+
       if (venueMarker) {
         venueMarker.setLatLng([venueCoords.lat, venueCoords.lng]);
       } else if (recceMap) {
         venueMarker = L.marker([venueCoords.lat, venueCoords.lng], {
+          icon: redIcon,
           title: "Venue"
         }).addTo(recceMap).bindPopup("📍 Venue").openPopup();
       }
 
       document.getElementById('recce-venue-gmaps').value = `https://www.google.com/maps?q=${venueCoords.lat},${venueCoords.lng}`;
       
-      // Fallback: If parking has not been set yet, send Waze to the venue
       if (!parkingCoords) {
         document.getElementById('recce-waze').value = `https://waze.com/ul?ll=${venueCoords.lat},${venueCoords.lng}&navigate=yes`;
       }
     }
 
-    // Parking Pin: Generates Parking Google Maps AND Waze Links
+    // Set Parking Pin
     function setParkingPin(lat, lng) {
       parkingCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
 
@@ -400,8 +414,8 @@
 
     function updateDisplay() {
       const display = document.getElementById('coords-display');
-      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set'}<br>` +
-                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set'}`;
+      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set (Tap map or search)'}<br>` +
+                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set (Switch to Parking, then tap map)'}`;
     }
 
     function clearLocation() {
@@ -411,7 +425,7 @@
       if (venueMarker && recceMap) { recceMap.removeLayer(venueMarker); venueMarker = null; }
       if (parkingMarker && recceMap) { recceMap.removeLayer(parkingMarker); parkingMarker = null; }
 
-      document.getElementById('coords-display').innerHTML = `📍 Venue: Not set<br>🅿️ Parking: Not set (Tap "Set Parking Pin" then click the map)`;
+      document.getElementById('coords-display').innerHTML = `📍 Venue: Not set (Tap map or search)<br>🅿️ Parking: Not set (Switch mode, then tap map)`;
       document.getElementById('recce-venue-gmaps').value = "";
       document.getElementById('recce-parking-gmaps').value = "";
       document.getElementById('recce-waze').value = "";
@@ -421,51 +435,38 @@
       setPinMode('venue');
     }
 
-    // Manual input sync for Venue Google Maps field
-    const gmapsInput = document.getElementById('recce-venue-gmaps');
-    if (gmapsInput) {
-      gmapsInput.addEventListener('input', function(e) {
-        const val = e.target.value.trim();
-        const match = val.match(/(-?\d{1,2}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/);
-        if (match) {
-          const lat = parseFloat(match[1]);
-          const lng = parseFloat(match[2]);
-          setVenuePin(lat, lng);
-          updateDisplay();
-          if (recceMap) recceMap.setView([lat, lng], 15);
-        }
-      });
-    }
-
-    function locateUser() {
+    // Dynamic GPS Function: pins to currentPinMode ('venue' or 'parking')
+    function useCurrentLocation() {
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser. Please tap the map to place a pin.");
+        alert("Geolocation is not supported by your browser.");
         return;
       }
 
+      const targetName = currentPinMode === 'venue' ? "Venue" : "Parking";
       const coordsDisplay = document.getElementById('coords-display');
-      coordsDisplay.innerText = "Locating your position...";
+      coordsDisplay.innerText = `Fetching current GPS location for ${targetName}...`;
 
       navigator.geolocation.getCurrentPosition(
         pos => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           if (recceMap) recceMap.setView([lat, lng], 16);
-          setVenuePin(lat, lng);
+
+          if (currentPinMode === 'venue') {
+            setVenuePin(lat, lng);
+          } else {
+            setParkingPin(lat, lng);
+          }
           updateDisplay();
         },
         err => {
-          if (err.code === 1) {
-            coordsDisplay.innerHTML = "⚠️ GPS access blocked. Tap the map or search an address.";
-          } else {
-            coordsDisplay.innerHTML = "⚠️ GPS unavailable. Tap the map to drop a pin.";
-          }
+          coordsDisplay.innerHTML = `⚠️ Unable to retrieve GPS (${err.message}). Tap the map directly.`;
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
 
-    // Geocoding / Address Search
+    // Search Address & Drop Pin to currently selected mode
     async function searchAddress() {
       const query = document.getElementById('map-search-input').value.trim();
       if (!query) {
@@ -486,13 +487,17 @@
           const lng = parseFloat(results[0].lon);
 
           if (recceMap) recceMap.setView([lat, lng], 16);
-          setVenuePin(lat, lng);
-          updateDisplay();
 
-          const locInput = document.getElementById("recce-location");
-          if (!locInput.value) {
-            locInput.value = results[0].display_name.split(',')[0];
+          if (currentPinMode === 'venue') {
+            setVenuePin(lat, lng);
+            const locInput = document.getElementById("recce-location");
+            if (!locInput.value) {
+              locInput.value = results[0].display_name.split(',')[0];
+            }
+          } else {
+            setParkingPin(lat, lng);
           }
+          updateDisplay();
         } else {
           alert("Location not found. Try adding a city name or tap the map directly.");
         }
@@ -547,6 +552,17 @@
       btn.innerText = "Generating PDF & Uploading...";
       btn.style.backgroundColor = "#ccc";
 
+      // Build static map snapshot URL showing both pins
+      let staticMapUrl = "";
+      if (venueCoords) {
+        let markersParam = `pin-l-star+e74c3c(${venueCoords.lng},${venueCoords.lat})`;
+        if (parkingCoords) {
+          markersParam += `,pin-l-parking+2980b9(${parkingCoords.lng},${parkingCoords.lat})`;
+        }
+        staticMapUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,300&pt=${venueCoords.lng},${venueCoords.lat},pm2rdm` +
+          (parkingCoords ? `~${parkingCoords.lng},${parkingCoords.lat},pm2blm` : '');
+      }
+
       const payload = {
         formType: "Recce",
         locationName: locationName,
@@ -560,6 +576,7 @@
         lng: venueCoords ? venueCoords.lng : "0",
         parkingLat: parkingCoords ? parkingCoords.lat : "",
         parkingLng: parkingCoords ? parkingCoords.lng : "",
+        staticMapUrl: staticMapUrl,
         photos: reccePhotos
       };
 
