@@ -84,20 +84,20 @@
 
       <div id="recce-map-container"></div>
       
-      <!-- Coordinate & Distance Status Display -->
+      <!-- Coordinate Status Display -->
       <div id="coords-display" class="coord-display">
         📍 Venue: Not set<br>
         🅿️ Parking: Not set (Tap "Set Parking Pin" then click the map)
       </div>
 
-      <label for="recce-gmaps">Venue Google Maps URL</label>
-      <input type="text" id="recce-gmaps" placeholder="Generated from Venue Pin" required>
+      <label for="recce-venue-gmaps">Venue Google Maps URL</label>
+      <input type="text" id="recce-venue-gmaps" placeholder="Generated from Venue Pin" required>
 
-      <label for="recce-waze">Vehicle Waze URL (Points to Parking)</label>
-      <input type="text" id="recce-waze" placeholder="Auto-routes to Parking Pin">
+      <label for="recce-parking-gmaps">Parking Google Maps URL</label>
+      <input type="text" id="recce-parking-gmaps" placeholder="Generated from Parking Pin">
 
-      <label for="recce-walk-info">Parking-to-Venue Walking Route</label>
-      <input type="text" id="recce-walk-info" placeholder="Calculated automatically when both pins are set" readonly style="background-color: #f8f9fa;">
+      <label for="recce-waze">Parking Waze URL</label>
+      <input type="text" id="recce-waze" placeholder="Generated from Parking Pin (or Venue fallback)">
 
       <label>Photos (Up to 10)</label>
       <input type="file" id="recce-photos" accept="image/*" multiple>
@@ -107,7 +107,7 @@
       <div class="confirm-box">
         <label class="confirm-label">
           <input type="checkbox" id="recce-confirm-checkbox" style="accent-color: #af52de;" required>
-          <span>I have reviewed the details, photos, pins, and walking route, and confirm this report is complete.</span>
+          <span>I have reviewed the details, photos, and location pins, and confirm this report is complete.</span>
         </label>
       </div>
 
@@ -186,15 +186,13 @@
     let base64Image = "", fileName = "", mimeType = "";
     let reccePhotos = [];
     
-    // Multi-Pin & Routing State
+    // Multi-Pin State
     let recceMap = null;
     let currentPinMode = 'venue'; // 'venue' or 'parking'
     let venueCoords = null;       // { lat, lng }
     let parkingCoords = null;     // { lat, lng }
     let venueMarker = null;
     let parkingMarker = null;
-    let walkPolyline = null;
-    let walkDistanceText = "";
 
     // Single Photo Listener (Standard Logs)
     const singlePhoto = document.getElementById('photo-upload');
@@ -351,10 +349,10 @@
       } else {
         setParkingPin(lat, lng);
       }
-      updateRouteAndDistance();
+      updateDisplay();
     }
 
-    // Set Venue Pin (Standard Red Pin)
+    // Venue Pin: Generates ONLY Venue Google Maps Link
     function setVenuePin(lat, lng) {
       venueCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
       
@@ -362,19 +360,19 @@
         venueMarker.setLatLng([venueCoords.lat, venueCoords.lng]);
       } else if (recceMap) {
         venueMarker = L.marker([venueCoords.lat, venueCoords.lng], {
-          title: "Venue Entrance"
-        }).addTo(recceMap).bindPopup("📍 Venue Entrance").openPopup();
+          title: "Venue"
+        }).addTo(recceMap).bindPopup("📍 Venue").openPopup();
       }
 
-      document.getElementById('recce-gmaps').value = `https://www.google.com/maps?q=${venueCoords.lat},${venueCoords.lng}`;
+      document.getElementById('recce-venue-gmaps').value = `https://www.google.com/maps?q=${venueCoords.lat},${venueCoords.lng}`;
       
-      // If parking is not set yet, route Waze to venue as fallback
+      // Fallback: If parking has not been set yet, send Waze to the venue
       if (!parkingCoords) {
         document.getElementById('recce-waze').value = `https://waze.com/ul?ll=${venueCoords.lat},${venueCoords.lng}&navigate=yes`;
       }
     }
 
-    // Set Parking Pin (Distinct Blue Pin)
+    // Parking Pin: Generates Parking Google Maps AND Waze Links
     function setParkingPin(lat, lng) {
       parkingCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
 
@@ -392,111 +390,39 @@
       } else if (recceMap) {
         parkingMarker = L.marker([parkingCoords.lat, parkingCoords.lng], {
           icon: blueIcon,
-          title: "Parking Location"
-        }).addTo(recceMap).bindPopup("🅿️ Vehicle Parking").openPopup();
+          title: "Parking"
+        }).addTo(recceMap).bindPopup("🅿️ Parking").openPopup();
       }
 
-      // Waze routes directly to vehicle parking
+      document.getElementById('recce-parking-gmaps').value = `https://www.google.com/maps?q=${parkingCoords.lat},${parkingCoords.lng}`;
       document.getElementById('recce-waze').value = `https://waze.com/ul?ll=${parkingCoords.lat},${parkingCoords.lng}&navigate=yes`;
     }
 
-    // Real-World Street Routing via OSRM Foot Profile
-    async function updateRouteAndDistance() {
+    function updateDisplay() {
       const display = document.getElementById('coords-display');
-      let statusHtml = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set'}<br>` +
-                       `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set'}`;
-
-      if (venueCoords && parkingCoords) {
-        display.innerHTML = statusHtml + `<br>🚶 <em>Calculating street walk route...</em>`;
-
-        try {
-          const url = `https://router.project-osrm.org/route/v1/foot/${parkingCoords.lng},${parkingCoords.lat};${venueCoords.lng},${venueCoords.lat}?overview=full&geometries=geojson`;
-          
-          const response = await fetch(url);
-          const data = await response.json();
-
-          if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-            const route = data.routes[0];
-            const distanceMeters = Math.round(route.distance);
-            const walkMinutes = Math.max(1, Math.round(route.duration / 60));
-
-            walkDistanceText = `${distanceMeters}m (~${walkMinutes} min walk via streets)`;
-            document.getElementById('recce-walk-info').value = walkDistanceText;
-            display.innerHTML = statusHtml + `<br>🚶 <strong>Street Route:</strong> ${walkDistanceText}`;
-
-            const pathCoords = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-
-            if (walkPolyline) {
-              walkPolyline.setLatLngs(pathCoords);
-            } else if (recceMap) {
-              walkPolyline = L.polyline(pathCoords, {
-                color: '#007aff',
-                weight: 5,
-                opacity: 0.85
-              }).addTo(recceMap);
-            }
-
-            recceMap.fitBounds(walkPolyline.getBounds(), { padding: [30, 30] });
-          } else {
-            fallbackStraightLine(display, statusHtml);
-          }
-        } catch (err) {
-          console.warn("Routing API error, using fallback:", err);
-          fallbackStraightLine(display, statusHtml);
-        }
-      } else {
-        document.getElementById('recce-walk-info').value = "";
-        if (walkPolyline && recceMap) {
-          recceMap.removeLayer(walkPolyline);
-          walkPolyline = null;
-        }
-        display.innerHTML = statusHtml;
-      }
-    }
-
-    function fallbackStraightLine(display, statusHtml) {
-      const p1 = L.latLng(venueCoords.lat, venueCoords.lng);
-      const p2 = L.latLng(parkingCoords.lat, parkingCoords.lng);
-      const dist = Math.round(p1.distanceTo(p2));
-      const mins = Math.max(1, Math.round(dist / 75));
-
-      walkDistanceText = `${dist}m (~${mins} min straight-line)`;
-      document.getElementById('recce-walk-info').value = walkDistanceText;
-      display.innerHTML = statusHtml + `<br>🚶 <strong>Estimated:</strong> ${walkDistanceText}`;
-
-      if (walkPolyline) {
-        walkPolyline.setLatLngs([p1, p2]);
-      } else if (recceMap) {
-        walkPolyline = L.polyline([p1, p2], {
-          color: '#007aff',
-          weight: 4,
-          dashArray: '6, 8',
-          opacity: 0.85
-        }).addTo(recceMap);
-      }
+      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set'}<br>` +
+                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set'}`;
     }
 
     function clearLocation() {
       venueCoords = null;
       parkingCoords = null;
-      walkDistanceText = "";
 
       if (venueMarker && recceMap) { recceMap.removeLayer(venueMarker); venueMarker = null; }
       if (parkingMarker && recceMap) { recceMap.removeLayer(parkingMarker); parkingMarker = null; }
-      if (walkPolyline && recceMap) { recceMap.removeLayer(walkPolyline); walkPolyline = null; }
 
       document.getElementById('coords-display').innerHTML = `📍 Venue: Not set<br>🅿️ Parking: Not set (Tap "Set Parking Pin" then click the map)`;
-      document.getElementById('recce-gmaps').value = "";
+      document.getElementById('recce-venue-gmaps').value = "";
+      document.getElementById('recce-parking-gmaps').value = "";
       document.getElementById('recce-waze').value = "";
-      document.getElementById('recce-walk-info').value = "";
       
       const searchBox = document.getElementById('map-search-input');
       if (searchBox) searchBox.value = "";
       setPinMode('venue');
     }
 
-    // Manual input sync
-    const gmapsInput = document.getElementById('recce-gmaps');
+    // Manual input sync for Venue Google Maps field
+    const gmapsInput = document.getElementById('recce-venue-gmaps');
     if (gmapsInput) {
       gmapsInput.addEventListener('input', function(e) {
         const val = e.target.value.trim();
@@ -505,7 +431,7 @@
           const lat = parseFloat(match[1]);
           const lng = parseFloat(match[2]);
           setVenuePin(lat, lng);
-          updateRouteAndDistance();
+          updateDisplay();
           if (recceMap) recceMap.setView([lat, lng], 15);
         }
       });
@@ -526,7 +452,7 @@
           const lng = pos.coords.longitude;
           if (recceMap) recceMap.setView([lat, lng], 16);
           setVenuePin(lat, lng);
-          updateRouteAndDistance();
+          updateDisplay();
         },
         err => {
           if (err.code === 1) {
@@ -539,7 +465,7 @@
       );
     }
 
-    // Geocoding / Address Search (Nominatim)
+    // Geocoding / Address Search
     async function searchAddress() {
       const query = document.getElementById('map-search-input').value.trim();
       if (!query) {
@@ -561,7 +487,7 @@
 
           if (recceMap) recceMap.setView([lat, lng], 16);
           setVenuePin(lat, lng);
-          updateRouteAndDistance();
+          updateDisplay();
 
           const locInput = document.getElementById("recce-location");
           if (!locInput.value) {
@@ -569,11 +495,9 @@
           }
         } else {
           alert("Location not found. Try adding a city name or tap the map directly.");
-          updateRouteAndDistance();
         }
       } catch (err) {
         alert("Search failed. Place pin manually on the map.");
-        updateRouteAndDistance();
       }
     }
 
@@ -587,14 +511,14 @@
       });
     }
 
-    // Recce Form Submit with Confirmation Barriers
+    // Recce Form Submit
     document.getElementById("recceForm").addEventListener("submit", function(e) {
       e.preventDefault();
 
       const locationName = document.getElementById("recce-location").value.trim();
       const officer = document.getElementById("recce-officer").value.trim();
       const desc = document.getElementById("recce-desc").value.trim();
-      const gmapsVal = document.getElementById("recce-gmaps").value.trim();
+      const venueGmapsVal = document.getElementById("recce-venue-gmaps").value.trim();
       const confirmBox = document.getElementById("recce-confirm-checkbox");
 
       if (!confirmBox.checked) {
@@ -602,7 +526,7 @@
         return;
       }
 
-      if (!venueCoords && !gmapsVal) {
+      if (!venueCoords && !venueGmapsVal) {
         alert("Please set a venue location on the map before submitting.");
         return;
       }
@@ -612,7 +536,6 @@
         "• Venue: " + locationName + "\n" +
         "• Officer: " + officer + "\n" +
         "• Parking Pin: " + (parkingCoords ? "Set" : "Not set (Waze will point to venue)") + "\n" +
-        "• Walking Route: " + (walkDistanceText || "N/A") + "\n" +
         "• Photos: " + reccePhotos.length + "\n\n" +
         "Tap OK to generate PDF & submit, or Cancel to keep editing."
       );
@@ -630,13 +553,13 @@
         officer: officer,
         date: document.getElementById("recce-date").value,
         description: desc,
-        googleMapsUrl: gmapsVal,
+        googleMapsUrl: venueGmapsVal,
+        parkingGoogleMapsUrl: document.getElementById("recce-parking-gmaps").value.trim(),
         wazeUrl: document.getElementById("recce-waze").value.trim(),
         lat: venueCoords ? venueCoords.lat : "0",
         lng: venueCoords ? venueCoords.lng : "0",
         parkingLat: parkingCoords ? parkingCoords.lat : "",
         parkingLng: parkingCoords ? parkingCoords.lng : "",
-        walkDistance: walkDistanceText,
         photos: reccePhotos
       };
 
@@ -666,7 +589,7 @@
       });
     });
 
-    // Standard Log Submit with Confirmation Barriers
+    // Standard Log Submit
     document.getElementById("logForm").addEventListener("submit", function(event) {
       event.preventDefault();
 
