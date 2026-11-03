@@ -21,8 +21,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg-base);
-      background-image: 
-        radial-gradient(circle at 50% 0%, rgba(60, 70, 85, 0.3) 0%, transparent 70%);
+      background-image: radial-gradient(circle at 50% 0%, rgba(60, 70, 85, 0.3) 0%, transparent 70%);
       padding: 16px;
       display: flex;
       justify-content: center;
@@ -43,7 +42,7 @@
       position: relative;
     }
 
-    .wide-card { max-width: 900px; }
+    .wide-card { max-width: 950px; }
 
     /* Header & Logo */
     .brand-header {
@@ -89,7 +88,7 @@
       box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
     }
 
-    /* Clean Operator Action Buttons */
+    /* Menu Buttons */
     .dash-btn {
       width: 100%;
       padding: 16px 20px;
@@ -109,45 +108,16 @@
       font-family: inherit;
     }
 
-    .dash-btn:active {
-      transform: scale(0.99);
-      filter: brightness(0.9);
-    }
+    .dash-btn:active { transform: scale(0.99); filter: brightness(0.9); }
+    .dash-btn-sub { font-size: 13px; opacity: 0.85; font-weight: 400; color: #e2e8f0; }
 
-    .dash-btn-sub {
-      font-size: 13px;
-      opacity: 0.85;
-      font-weight: 400;
-      color: #e2e8f0;
-    }
+    .btn-sec-log { background: #3a424e; border-left: 6px solid #64748b; }
+    .btn-action-items { background: #c25e00; border-left: 6px solid #fb923c; }
+    .btn-personnel { background: #0f766e; border-left: 6px solid #14b8a6; }
+    .btn-recce { background: #6d28d9; border-left: 6px solid #a78bfa; }
+    .btn-calendar { background: #1d4ed8; border-left: 6px solid #60a5fa; }
+    .btn-map { background: #15803d; border-left: 6px solid #4ade80; }
 
-    /* Professional Operator Palette */
-    .btn-sec-log { 
-      background: #3a424e; 
-      border-left: 6px solid #64748b; 
-    }
-    .btn-action-items { 
-      background: #c25e00; 
-      border-left: 6px solid #fb923c; 
-    }
-    .btn-personnel { 
-      background: #0f766e; 
-      border-left: 6px solid #14b8a6; 
-    }
-    .btn-recce { 
-      background: #6d28d9; 
-      border-left: 6px solid #a78bfa; 
-    }
-    .btn-calendar { 
-      background: #1d4ed8; 
-      border-left: 6px solid #60a5fa; 
-    }
-    .btn-map { 
-      background: #15803d; 
-      border-left: 6px solid #4ade80; 
-    }
-
-    /* Form UI */
     .back-btn {
       padding: 9px 16px;
       background-color: var(--panel-bg);
@@ -166,11 +136,10 @@
     label {
       font-weight: 600;
       display: block;
-      margin-top: 16px;
+      margin-top: 14px;
       margin-bottom: 6px;
       color: #cbd5e1;
       font-size: 13px;
-      letter-spacing: 0.3px;
     }
 
     input, select, textarea {
@@ -216,7 +185,7 @@
 
     iframe { border: 1px solid var(--border-color); border-radius: 8px; }
     #recce-map-container { height: 350px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; cursor: crosshair; }
-    
+
     .coord-display {
       font-size: 13px;
       color: #cbd5e1;
@@ -234,7 +203,7 @@
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 14px;
-      margin-top: 20px;
+      margin-top: 16px;
     }
     .confirm-label {
       display: flex;
@@ -244,7 +213,6 @@
       font-size: 13px;
       color: #e2e8f0;
       font-weight: 500;
-      line-height: 1.4;
     }
     .confirm-label input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: #2563eb; }
 
@@ -263,7 +231,6 @@
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
     .close-item-btn {
       width: 100%;
@@ -279,7 +246,93 @@
       font-family: inherit;
     }
 
-    /* Personnel Photo Section */
+    /* Live Staff Table */
+    .roster-table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--panel-bg);
+      margin-top: 14px;
+    }
+    table.roster-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+    table.roster-table th {
+      background: #181b22;
+      color: var(--text-secondary);
+      padding: 12px 14px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    table.roster-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+    table.roster-table tr.clickable-row {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    table.roster-table tr.clickable-row:hover {
+      background: rgba(20, 184, 166, 0.12);
+    }
+    table.roster-table tr.empty-row {
+      background: rgba(100, 116, 139, 0.08);
+      font-style: italic;
+      color: #94a3b8;
+    }
+    .staff-thumb {
+      width: 50px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      display: block;
+    }
+    .staff-thumb-placeholder {
+      width: 50px;
+      height: 60px;
+      background: var(--card-bg);
+      border: 1px dashed var(--border-light);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    /* Modal Sheet Editor Popup */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 9999;
+      overflow-y: auto;
+      padding: 16px;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 620px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      position: relative;
+    }
     .personnel-photo-box {
       display: flex;
       align-items: center;
@@ -301,7 +354,6 @@
       justify-content: center;
       overflow: hidden;
       flex-shrink: 0;
-      position: relative;
     }
     .personnel-preview img {
       width: 100%;
@@ -332,10 +384,10 @@
       <span class="dash-btn-sub">Task Queue</span>
     </button>
 
-    <!-- Staff Profiles Button -->
+    <!-- Staff Profiles Viewer Button -->
     <button type="button" class="dash-btn btn-personnel" onclick="openPersonnel()">
       <span>Staff Profiles</span>
-      <span class="dash-btn-sub">House Staff & Contacts</span>
+      <span class="dash-btn-sub">Live Roster & Contacts</span>
     </button>
 
     <button type="button" class="dash-btn btn-recce" onclick="openRecce()">
@@ -365,68 +417,104 @@
     <div id="open-items-list"></div>
   </div>
 
-  <!-- 3. STAFF PROFILES / ROSTER VIEW -->
+  <!-- 3. LIVE STAFF ROSTER VIEWER -->
   <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-      <button type="button" class="back-btn" style="background-color: #0f766e; color: #fff; border: none;" onclick="openGoogleSheet()">📊 Open Google Sheet</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <button type="button" class="back-btn" style="margin: 0;" onclick="goBack()">← Back to Menu</button>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="back-btn" style="margin: 0; background: #0f766e; color: #fff; border: none;" onclick="openNewStaffPopup()">+ Add New Staff</button>
+        <button type="button" class="back-btn" style="margin: 0;" onclick="loadStaffRoster()">🔄 Refresh</button>
+      </div>
     </div>
 
-    <div class="status-bar" style="margin-bottom: 14px;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">Staff Profiles - House Staff</h2>
-      <div class="sys-beacon" style="color: #2dd4bf;">ROSTER ACTIVE</div>
+    <div class="status-bar" style="margin-top: 14px; margin-bottom: 8px;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">House Staff - Operations Roster</h2>
+      <div class="sys-beacon" style="color: #2dd4bf;">SYNCED</div>
+    </div>
+    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+      Tap any row below to edit or fill employee information and photos.
     </div>
 
-    <form id="personnelForm">
-      <!-- Photo Section -->
-      <label>Staff Portrait Photo</label>
-      <div class="personnel-photo-box">
-        <div class="personnel-preview" id="personnel-preview-box">
-          <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
-          <img id="personnel-img-tag" style="display: none;" alt="Preview" />
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-          <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
-          <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
-          <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear Photo</button>
-        </div>
-      </div>
+    <div id="roster-loading-status" style="color: #60a5fa; font-size: 14px; text-align: center; padding: 20px 0;">Loading House Staff...</div>
 
-      <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
-      <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
-
-      <!-- Sheet Headings -->
-      <label for="p-name">Name</label>
-      <input type="text" id="p-name" placeholder="e.g. Dmitry Ziskind" required>
-
-      <label for="p-position">Job Title / Position</label>
-      <input type="text" id="p-position" placeholder="e.g. Director" required>
-
-      <label for="p-startdate">Start Date</label>
-      <input type="date" id="p-startdate" required>
-
-      <label for="p-phone">Phone Number</label>
-      <input type="tel" id="p-phone" placeholder="e.g. 052-519-4744" required>
-
-      <label for="p-emergency">Emergency Contact Information</label>
-      <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540; Aruenb (Family): 052-5787945" required>
-
-      <label for="p-allergies">Allergies</label>
-      <input type="text" id="p-allergies" placeholder="e.g. None" value="None" required>
-
-      <div class="confirm-box">
-        <label class="confirm-label">
-          <input type="checkbox" id="personnel-confirm-checkbox" required>
-          <span>I confirm this staff profile information is verified and accurate.</span>
-        </label>
-      </div>
-
-      <button type="submit" id="personnelSubmitBtn" class="submit-btn" style="background-color: #0d9488;">Save to House Staff Sheet</button>
-    </form>
-    <div id="personnel-status-message"></div>
+    <div class="roster-table-container" id="roster-table-wrapper" style="display: none;">
+      <table class="roster-table">
+        <thead>
+          <tr>
+            <th style="width: 45px;">Row</th>
+            <th style="width: 65px;">Photo</th>
+            <th>Name</th>
+            <th>Position</th>
+            <th>Phone</th>
+            <th>Emergency Contact</th>
+            <th>Allergies</th>
+          </tr>
+        </thead>
+        <tbody id="roster-table-body"></tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- 4. RECCE FORM VIEW -->
+  <!-- 4. MODAL POPUP: EDIT / FILL ROW -->
+  <div id="staff-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 id="modal-heading" style="margin: 0; font-size: 17px; color: #fff;">Staff Record</h3>
+        <button type="button" class="back-btn" style="margin: 0; padding: 6px 12px;" onclick="closeStaffModal()">✕ Cancel</button>
+      </div>
+
+      <form id="personnelForm">
+        <input type="hidden" id="p-row-index" value="">
+        <input type="hidden" id="p-existing-photo" value="">
+
+        <!-- Photo Section -->
+        <label>Staff Portrait Photo</label>
+        <div class="personnel-photo-box">
+          <div class="personnel-preview" id="personnel-preview-box">
+            <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
+            <img id="personnel-img-tag" style="display: none;" alt="Preview" />
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
+            <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
+            <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear / Replace</button>
+          </div>
+        </div>
+
+        <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
+        <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
+
+        <label for="p-name">Name</label>
+        <input type="text" id="p-name" placeholder="e.g. Evgeni Boguslavsky" required>
+
+        <label for="p-position">Job Title / Position</label>
+        <input type="text" id="p-position" placeholder="e.g. Maintenance Engineer" required>
+
+        <label for="p-startdate">Start Date</label>
+        <input type="date" id="p-startdate" required>
+
+        <label for="p-phone">Phone Number</label>
+        <input type="tel" id="p-phone" placeholder="e.g. 050-581-8826" required>
+
+        <label for="p-emergency">Emergency Contact Information</label>
+        <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540" required>
+
+        <label for="p-allergies">Allergies</label>
+        <input type="text" id="p-allergies" placeholder="e.g. None / Parsley" value="None" required>
+
+        <div class="confirm-box">
+          <label class="confirm-label">
+            <input type="checkbox" id="personnel-confirm-checkbox" required>
+            <span>I confirm this staff profile information is verified and accurate.</span>
+          </label>
+        </div>
+
+        <button type="submit" id="personnelSubmitBtn" class="submit-btn" style="background-color: #0d9488;">Save to Row</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. RECCE FORM VIEW -->
   <div id="recce-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -436,7 +524,7 @@
 
     <form id="recceForm">
       <label for="recce-location">Facility / Location Name</label>
-      <input type="text" id="recce-location" placeholder="e.g. Compound Alpha / Hotel Grand" required>
+      <input type="text" id="recce-location" placeholder="e.g. Compound Alpha" required>
 
       <label for="recce-officer">Officer Name</label>
       <input type="text" id="recce-officer" placeholder="Your name" required>
@@ -445,7 +533,7 @@
       <input type="date" id="recce-date" required>
 
       <label for="recce-desc">Operational Notes / Briefing</label>
-      <textarea id="recce-desc" placeholder="Ingress corridors, access checkpoints, clearance codes..." required></textarea>
+      <textarea id="recce-desc" placeholder="Ingress corridors, access checkpoints..." required></textarea>
 
       <label>Location & Parking Setup</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
@@ -481,12 +569,8 @@
 
       <label>Photos (Up to 10)</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">
-          📷 Take Photo
-        </button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">
-          🖼️ Photo Library
-        </button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">📷 Take Photo</button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">🖼️ Photo Library</button>
       </div>
 
       <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
@@ -507,7 +591,7 @@
     <div id="recce-status-message"></div>
   </div>
 
-  <!-- 5. STANDARD LOG FORM VIEW -->
+  <!-- 6. STANDARD LOG FORM VIEW -->
   <div id="form-view" class="card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -554,7 +638,7 @@
     <div id="status-message"></div>
   </div>
 
-  <!-- 6. EMBEDDED CALENDAR VIEW -->
+  <!-- 7. EMBEDDED CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -564,7 +648,7 @@
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 7. EMBEDDED MAP VIEW -->
+  <!-- 8. EMBEDDED MAP VIEW -->
   <div id="map-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -576,13 +660,11 @@
 
   <script>
     var webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
-    
-    // Direct link to open the House Staff sheet
-    var personnelSheetUrl = "https://docs.google.com/spreadsheets/d/14e4H8QXRg6zjs9y04Kr_PFz7P5xwhrE6/edit";
 
     var base64Image = "", fileName = "", mimeType = "";
     var reccePhotos = [];
     var personnelPhotoBase64 = "";
+    var currentLoadedRoster = [];
 
     var recceMap = null;
     var currentPinMode = 'venue';
@@ -614,13 +696,11 @@
       loadOpenItems();
     };
 
+    /* Opens the Roster Viewer automatically like Maps */
     window.openPersonnel = function() {
       window.hideAllViews();
       document.getElementById('personnel-view').style.display = 'block';
-    };
-
-    window.openGoogleSheet = function() {
-      window.open(personnelSheetUrl, '_blank');
+      loadStaffRoster();
     };
 
     window.openCalendar = function() {
@@ -636,9 +716,7 @@
     window.openRecce = function() {
       window.hideAllViews();
       document.getElementById('recce-view').style.display = 'block';
-      setTimeout(function() {
-        initRecceMap();
-      }, 200);
+      setTimeout(function() { initRecceMap(); }, 200);
     };
 
     window.goBack = function() {
@@ -648,10 +726,167 @@
       if (s1) s1.innerText = "";
       var s2 = document.getElementById('recce-status-message');
       if (s2) s2.innerText = "";
-      var s3 = document.getElementById('personnel-status-message');
-      if (s3) s3.innerText = "";
     };
 
+    /* Live Staff Table Fetch & Click-to-Select Implementation */
+    function loadStaffRoster() {
+      var statusDiv = document.getElementById('roster-loading-status');
+      var tableWrapper = document.getElementById('roster-table-wrapper');
+      var tbody = document.getElementById('roster-table-body');
+
+      statusDiv.style.display = "block";
+      statusDiv.innerText = "Syncing House Staff rows...";
+      tableWrapper.style.display = "none";
+      tbody.innerHTML = "";
+
+      var scriptId = 'jsonp-staff-roster';
+      var oldScript = document.getElementById(scriptId);
+      if (oldScript) oldScript.remove();
+
+      window.handleStaffRosterCallback = function(response) {
+        statusDiv.style.display = "none";
+        if (!response || !response.roster || response.roster.length === 0) {
+          statusDiv.style.display = "block";
+          statusDiv.innerText = "No staff records found in House Staff tab.";
+          return;
+        }
+
+        currentLoadedRoster = response.roster;
+        tableWrapper.style.display = "block";
+        tbody.innerHTML = "";
+
+        response.roster.forEach(function(row) {
+          var tr = document.createElement('tr');
+          tr.className = "clickable-row" + (row.isEmpty ? " empty-row" : "");
+
+          var photoTd = row.photoUrl
+            ? '<img src="' + row.photoUrl + '" class="staff-thumb">'
+            : '<div class="staff-thumb-placeholder">No Photo</div>';
+
+          if (row.isEmpty) {
+            tr.innerHTML = 
+              '<td style="font-weight: bold; color: var(--text-secondary);">' + row.rowIndex + '</td>' +
+              '<td>' + photoTd + '</td>' +
+              '<td colspan="5" style="color: #60a5fa; font-weight: 500;">[ Empty Row ' + row.rowIndex + ' — Tap to assign staff ]</td>';
+          } else {
+            tr.innerHTML = 
+              '<td style="font-weight: bold; color: var(--text-secondary);">' + row.rowIndex + '</td>' +
+              '<td>' + photoTd + '</td>' +
+              '<td style="font-weight: 600; color: #fff;">' + (row.name || '—') + '</td>' +
+              '<td>' + (row.position || '—') + '</td>' +
+              '<td><a href="tel:' + row.phone + '" style="color:#60a5fa; text-decoration:none;" onclick="event.stopPropagation();">' + (row.phone || '—') + '</a></td>' +
+              '<td style="font-size: 13px; color: #cbd5e1;">' + (row.emergency || '—') + '</td>' +
+              '<td style="font-size: 13px;">' + (row.allergies || 'None') + '</td>';
+          }
+
+          // Row selection event -> opens popup and pre-fills
+          tr.onclick = function() {
+            openStaffModalForRow(row);
+          };
+
+          tbody.appendChild(tr);
+        });
+      };
+
+      var script = document.createElement('script');
+      script.id = scriptId;
+      script.src = webAppUrl + '?action=getStaffRoster&callback=handleStaffRosterCallback&t=' + Date.now();
+      document.body.appendChild(script);
+    }
+
+    /* Modal Form Handlers */
+    function openStaffModalForRow(row) {
+      document.getElementById('staff-modal').style.display = 'flex';
+      document.getElementById('p-row-index').value = row.rowIndex;
+      document.getElementById('p-existing-photo').value = row.photoUrl ? ('=IMAGE("' + row.photoUrl + '", 1)') : '';
+
+      document.getElementById('modal-heading').innerText = row.isEmpty 
+        ? "Assign New Staff to Row " + row.rowIndex
+        : "Edit Record: " + (row.name || "Row " + row.rowIndex);
+
+      document.getElementById('p-name').value = row.name || '';
+      document.getElementById('p-position').value = row.position || '';
+      document.getElementById('p-phone').value = row.phone || '';
+      document.getElementById('p-emergency').value = row.emergency || '';
+      document.getElementById('p-allergies').value = row.allergies || 'None';
+
+      if (row.startDate) {
+        document.getElementById('p-startdate').value = row.startDate;
+      } else {
+        document.getElementById('p-startdate').valueAsDate = new Date();
+      }
+
+      var img = document.getElementById('personnel-img-tag');
+      var placeholder = document.getElementById('personnel-placeholder');
+      var removeBtn = document.getElementById('btn-remove-photo');
+
+      personnelPhotoBase64 = "";
+
+      if (row.photoUrl) {
+        img.src = row.photoUrl;
+        img.style.display = "block";
+        placeholder.style.display = "none";
+        removeBtn.style.display = "block";
+      } else {
+        img.style.display = "none";
+        placeholder.style.display = "block";
+        removeBtn.style.display = "none";
+      }
+
+      document.getElementById('personnel-confirm-checkbox').checked = false;
+    }
+
+    window.openNewStaffPopup = function() {
+      var nextRow = currentLoadedRoster.length > 0 
+        ? (currentLoadedRoster[currentLoadedRoster.length - 1].rowIndex + 1)
+        : 2;
+
+      openStaffModalForRow({
+        rowIndex: nextRow,
+        name: '', position: '', startDate: '', phone: '', emergency: '', allergies: 'None', isEmpty: true
+      });
+    };
+
+    window.closeStaffModal = function() {
+      document.getElementById('staff-modal').style.display = 'none';
+      personnelPhotoBase64 = "";
+    };
+
+    /* Personnel Photo Functions */
+    window.triggerPersonnelCamera = function() {
+      var el = document.getElementById('personnel-camera-input');
+      if (el) el.click();
+    };
+
+    window.triggerPersonnelGallery = function() {
+      var el = document.getElementById('personnel-gallery-input');
+      if (el) el.click();
+    };
+
+    window.removePersonnelPhoto = function() {
+      personnelPhotoBase64 = "";
+      document.getElementById('p-existing-photo').value = "";
+      document.getElementById('personnel-img-tag').style.display = "none";
+      document.getElementById('personnel-img-tag').src = "";
+      document.getElementById('personnel-placeholder').style.display = "block";
+      document.getElementById('btn-remove-photo').style.display = "none";
+    };
+
+    function handlePersonnelImage(file) {
+      if (!file) return;
+      toBase64(file).then(function(b64) {
+        personnelPhotoBase64 = b64;
+        var img = document.getElementById('personnel-img-tag');
+        img.src = b64;
+        img.style.display = "block";
+        document.getElementById('personnel-placeholder').style.display = "none";
+        document.getElementById('btn-remove-photo').style.display = "block";
+      }).catch(function(err) {
+        alert("Could not process photo: " + err);
+      });
+    }
+
+    /* Open Action Items Functions */
     function loadOpenItems() {
       var statusDiv = document.getElementById('open-items-status');
       var listDiv = document.getElementById('open-items-list');
@@ -717,10 +952,7 @@
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({
-          action: "closeLogItem",
-          rowIndex: rowIndex
-        })
+        body: JSON.stringify({ action: "closeLogItem", rowIndex: rowIndex })
       }).then(function() {
         alert("Item closed. Marked green in Google Sheet.");
         loadOpenItems();
@@ -733,39 +965,6 @@
         }
       });
     };
-
-    /* Personnel Photo Functions */
-    window.triggerPersonnelCamera = function() {
-      var el = document.getElementById('personnel-camera-input');
-      if (el) el.click();
-    };
-
-    window.triggerPersonnelGallery = function() {
-      var el = document.getElementById('personnel-gallery-input');
-      if (el) el.click();
-    };
-
-    window.removePersonnelPhoto = function() {
-      personnelPhotoBase64 = "";
-      document.getElementById('personnel-img-tag').style.display = "none";
-      document.getElementById('personnel-img-tag').src = "";
-      document.getElementById('personnel-placeholder').style.display = "block";
-      document.getElementById('btn-remove-photo').style.display = "none";
-    };
-
-    function handlePersonnelImage(file) {
-      if (!file) return;
-      toBase64(file).then(function(b64) {
-        personnelPhotoBase64 = b64;
-        var img = document.getElementById('personnel-img-tag');
-        img.src = b64;
-        img.style.display = "block";
-        document.getElementById('personnel-placeholder').style.display = "none";
-        document.getElementById('btn-remove-photo').style.display = "block";
-      }).catch(function(err) {
-        alert("Could not process photo: " + err);
-      });
-    }
 
     /* Recce Triggers & Handlers */
     window.triggerCamera = function() {
@@ -1112,7 +1311,7 @@
         };
       }
 
-      /* Personnel File Listeners */
+      /* Modal Photo Inputs */
       var pCamera = document.getElementById('personnel-camera-input');
       if (pCamera) {
         pCamera.onchange = function(e) {
@@ -1164,7 +1363,7 @@
         };
       }
 
-      /* Personnel Form Submission */
+      /* Modal Form Submission: Target Row Saved */
       var pForm = document.getElementById("personnelForm");
       if (pForm) {
         pForm.onsubmit = function(e) {
@@ -1175,13 +1374,16 @@
             return;
           }
 
+          var targetRowIndex = document.getElementById("p-row-index").value;
           var btn = document.getElementById("personnelSubmitBtn");
           btn.disabled = true;
-          btn.innerText = "Transmitting to Roster...";
+          btn.innerText = "Updating Row " + targetRowIndex + "...";
           btn.style.backgroundColor = "#475569";
 
           var payload = {
-            action: "addPersonnel",
+            action: "saveStaffProfile",
+            rowIndex: targetRowIndex,
+            existingPhotoFormula: document.getElementById("p-existing-photo").value,
             photoBase64: personnelPhotoBase64,
             name: document.getElementById("p-name").value.trim(),
             jobTitle: document.getElementById("p-position").value.trim(),
@@ -1197,22 +1399,17 @@
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
           }).then(function() {
-            alert("Personnel entry saved successfully.");
+            alert("Row " + targetRowIndex + " successfully updated.");
             btn.disabled = false;
-            btn.innerText = "Save to House Staff Sheet";
+            btn.innerText = "Save to Row";
             btn.style.backgroundColor = "#0d9488";
-            pForm.reset();
-            window.removePersonnelPhoto();
-            var dReset = document.getElementById('p-startdate');
-            if (dReset) dReset.valueAsDate = new Date();
-            window.goBack();
+            closeStaffModal();
+            loadStaffRoster(); // Refreshes the viewer table automatically
           }).catch(function(err) {
             alert("Upload failed: " + err.message);
             btn.disabled = false;
-            btn.innerText = "Save to House Staff Sheet";
+            btn.innerText = "Save to Row";
             btn.style.backgroundColor = "#0d9488";
-            document.getElementById('personnel-status-message').innerText = "Upload error: " + err;
-            document.getElementById('personnel-status-message').className = "error";
           });
         };
       }
