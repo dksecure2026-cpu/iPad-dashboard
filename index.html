@@ -130,6 +130,10 @@
       background: #c25e00; 
       border-left: 6px solid #fb923c; 
     }
+    .btn-personnel { 
+      background: #0f766e; 
+      border-left: 6px solid #14b8a6; 
+    }
     .btn-recce { 
       background: #6d28d9; 
       border-left: 6px solid #a78bfa; 
@@ -205,8 +209,8 @@
       font-family: inherit;
     }
 
-    #form-view, #calendar-view, #map-view, #recce-view, #open-items-view { display: none; }
-    #status-message, #recce-status-message { text-align: center; margin-top: 14px; font-weight: 600; font-size: 14px; }
+    #form-view, #calendar-view, #map-view, #recce-view, #open-items-view, #personnel-view { display: none; }
+    #status-message, #recce-status-message, #personnel-status-message { text-align: center; margin-top: 14px; font-weight: 600; font-size: 14px; }
     .error { color: #f87171; }
     .divider { text-align: center; margin: 12px 0; font-weight: 600; color: var(--text-secondary); font-size: 12px; }
 
@@ -274,6 +278,36 @@
       cursor: pointer;
       font-family: inherit;
     }
+
+    /* Personnel Photo Section */
+    .personnel-photo-box {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: var(--panel-bg);
+      border: 1px dashed var(--border-light);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 6px;
+    }
+    .personnel-preview {
+      width: 90px;
+      height: 110px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .personnel-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   </style>
 </head>
 <body>
@@ -296,6 +330,12 @@
     <button type="button" class="dash-btn btn-action-items" onclick="openOpenItems()">
       <span>⚠️ Open Action Items</span>
       <span class="dash-btn-sub">Task Queue</span>
+    </button>
+
+    <!-- Staff Profiles Button -->
+    <button type="button" class="dash-btn btn-personnel" onclick="openPersonnel()">
+      <span>Staff Profiles</span>
+      <span class="dash-btn-sub">House Staff & Contacts</span>
     </button>
 
     <button type="button" class="dash-btn btn-recce" onclick="openRecce()">
@@ -325,7 +365,68 @@
     <div id="open-items-list"></div>
   </div>
 
-  <!-- 3. RECCE FORM VIEW -->
+  <!-- 3. STAFF PROFILES / ROSTER VIEW -->
+  <div id="personnel-view" class="card wide-card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
+      <button type="button" class="back-btn" style="background-color: #0f766e; color: #fff; border: none;" onclick="openGoogleSheet()">📊 Open Google Sheet</button>
+    </div>
+
+    <div class="status-bar" style="margin-bottom: 14px;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">Staff Profiles - House Staff</h2>
+      <div class="sys-beacon" style="color: #2dd4bf;">ROSTER ACTIVE</div>
+    </div>
+
+    <form id="personnelForm">
+      <!-- Photo Section -->
+      <label>Staff Portrait Photo</label>
+      <div class="personnel-photo-box">
+        <div class="personnel-preview" id="personnel-preview-box">
+          <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
+          <img id="personnel-img-tag" style="display: none;" alt="Preview" />
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+          <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
+          <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
+          <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear Photo</button>
+        </div>
+      </div>
+
+      <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
+      <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
+
+      <!-- Sheet Headings -->
+      <label for="p-name">Name</label>
+      <input type="text" id="p-name" placeholder="e.g. Dmitry Ziskind" required>
+
+      <label for="p-position">Job Title / Position</label>
+      <input type="text" id="p-position" placeholder="e.g. Director" required>
+
+      <label for="p-startdate">Start Date</label>
+      <input type="date" id="p-startdate" required>
+
+      <label for="p-phone">Phone Number</label>
+      <input type="tel" id="p-phone" placeholder="e.g. 052-519-4744" required>
+
+      <label for="p-emergency">Emergency Contact Information</label>
+      <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540; Aruenb (Family): 052-5787945" required>
+
+      <label for="p-allergies">Allergies</label>
+      <input type="text" id="p-allergies" placeholder="e.g. None" value="None" required>
+
+      <div class="confirm-box">
+        <label class="confirm-label">
+          <input type="checkbox" id="personnel-confirm-checkbox" required>
+          <span>I confirm this staff profile information is verified and accurate.</span>
+        </label>
+      </div>
+
+      <button type="submit" id="personnelSubmitBtn" class="submit-btn" style="background-color: #0d9488;">Save to House Staff Sheet</button>
+    </form>
+    <div id="personnel-status-message"></div>
+  </div>
+
+  <!-- 4. RECCE FORM VIEW -->
   <div id="recce-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -406,7 +507,7 @@
     <div id="recce-status-message"></div>
   </div>
 
-  <!-- 4. STANDARD LOG FORM VIEW -->
+  <!-- 5. STANDARD LOG FORM VIEW -->
   <div id="form-view" class="card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -453,7 +554,7 @@
     <div id="status-message"></div>
   </div>
 
-  <!-- 5. EMBEDDED CALENDAR VIEW -->
+  <!-- 6. EMBEDDED CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -463,7 +564,7 @@
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 6. EMBEDDED MAP VIEW -->
+  <!-- 7. EMBEDDED MAP VIEW -->
   <div id="map-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -475,9 +576,13 @@
 
   <script>
     var webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
+    
+    // Direct link to open the House Staff sheet
+    var personnelSheetUrl = "https://docs.google.com/spreadsheets/d/14e4H8QXRg6zjs9y04Kr_PFz7P5xwhrE6/edit";
 
     var base64Image = "", fileName = "", mimeType = "";
     var reccePhotos = [];
+    var personnelPhotoBase64 = "";
 
     var recceMap = null;
     var currentPinMode = 'venue';
@@ -493,6 +598,7 @@
       document.getElementById('map-view').style.display = 'none';
       document.getElementById('recce-view').style.display = 'none';
       document.getElementById('open-items-view').style.display = 'none';
+      document.getElementById('personnel-view').style.display = 'none';
     };
 
     window.openForm = function(entryType) {
@@ -506,6 +612,15 @@
       window.hideAllViews();
       document.getElementById('open-items-view').style.display = 'block';
       loadOpenItems();
+    };
+
+    window.openPersonnel = function() {
+      window.hideAllViews();
+      document.getElementById('personnel-view').style.display = 'block';
+    };
+
+    window.openGoogleSheet = function() {
+      window.open(personnelSheetUrl, '_blank');
     };
 
     window.openCalendar = function() {
@@ -533,6 +648,8 @@
       if (s1) s1.innerText = "";
       var s2 = document.getElementById('recce-status-message');
       if (s2) s2.innerText = "";
+      var s3 = document.getElementById('personnel-status-message');
+      if (s3) s3.innerText = "";
     };
 
     function loadOpenItems() {
@@ -617,6 +734,40 @@
       });
     };
 
+    /* Personnel Photo Functions */
+    window.triggerPersonnelCamera = function() {
+      var el = document.getElementById('personnel-camera-input');
+      if (el) el.click();
+    };
+
+    window.triggerPersonnelGallery = function() {
+      var el = document.getElementById('personnel-gallery-input');
+      if (el) el.click();
+    };
+
+    window.removePersonnelPhoto = function() {
+      personnelPhotoBase64 = "";
+      document.getElementById('personnel-img-tag').style.display = "none";
+      document.getElementById('personnel-img-tag').src = "";
+      document.getElementById('personnel-placeholder').style.display = "block";
+      document.getElementById('btn-remove-photo').style.display = "none";
+    };
+
+    function handlePersonnelImage(file) {
+      if (!file) return;
+      toBase64(file).then(function(b64) {
+        personnelPhotoBase64 = b64;
+        var img = document.getElementById('personnel-img-tag');
+        img.src = b64;
+        img.style.display = "block";
+        document.getElementById('personnel-placeholder').style.display = "none";
+        document.getElementById('btn-remove-photo').style.display = "block";
+      }).catch(function(err) {
+        alert("Could not process photo: " + err);
+      });
+    }
+
+    /* Recce Triggers & Handlers */
     window.triggerCamera = function() {
       var el = document.getElementById('recce-camera-input');
       if (el) el.click();
@@ -944,6 +1095,8 @@
       if (d1) d1.valueAsDate = new Date();
       var d2 = document.getElementById('recce-date');
       if (d2) d2.valueAsDate = new Date();
+      var d3 = document.getElementById('p-startdate');
+      if (d3) d3.valueAsDate = new Date();
 
       var singlePhoto = document.getElementById('photo-upload');
       if (singlePhoto) {
@@ -959,6 +1112,28 @@
         };
       }
 
+      /* Personnel File Listeners */
+      var pCamera = document.getElementById('personnel-camera-input');
+      if (pCamera) {
+        pCamera.onchange = function(e) {
+          if (e.target.files.length > 0) {
+            handlePersonnelImage(e.target.files[0]);
+            pCamera.value = "";
+          }
+        };
+      }
+
+      var pGallery = document.getElementById('personnel-gallery-input');
+      if (pGallery) {
+        pGallery.onchange = function(e) {
+          if (e.target.files.length > 0) {
+            handlePersonnelImage(e.target.files[0]);
+            pGallery.value = "";
+          }
+        };
+      }
+
+      /* Recce File Listeners */
       var cameraInput = document.getElementById('recce-camera-input');
       if (cameraInput) {
         cameraInput.onchange = function(e) {
@@ -989,6 +1164,60 @@
         };
       }
 
+      /* Personnel Form Submission */
+      var pForm = document.getElementById("personnelForm");
+      if (pForm) {
+        pForm.onsubmit = function(e) {
+          e.preventDefault();
+          var confirmBox = document.getElementById("personnel-confirm-checkbox");
+          if (!confirmBox.checked) {
+            alert("Please check the confirmation box.");
+            return;
+          }
+
+          var btn = document.getElementById("personnelSubmitBtn");
+          btn.disabled = true;
+          btn.innerText = "Transmitting to Roster...";
+          btn.style.backgroundColor = "#475569";
+
+          var payload = {
+            action: "addPersonnel",
+            photoBase64: personnelPhotoBase64,
+            name: document.getElementById("p-name").value.trim(),
+            jobTitle: document.getElementById("p-position").value.trim(),
+            startDate: document.getElementById("p-startdate").value,
+            phone: document.getElementById("p-phone").value.trim(),
+            emergency: document.getElementById("p-emergency").value.trim(),
+            allergies: document.getElementById("p-allergies").value.trim()
+          };
+
+          fetch(webAppUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+          }).then(function() {
+            alert("Personnel entry saved successfully.");
+            btn.disabled = false;
+            btn.innerText = "Save to House Staff Sheet";
+            btn.style.backgroundColor = "#0d9488";
+            pForm.reset();
+            window.removePersonnelPhoto();
+            var dReset = document.getElementById('p-startdate');
+            if (dReset) dReset.valueAsDate = new Date();
+            window.goBack();
+          }).catch(function(err) {
+            alert("Upload failed: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "Save to House Staff Sheet";
+            btn.style.backgroundColor = "#0d9488";
+            document.getElementById('personnel-status-message').innerText = "Upload error: " + err;
+            document.getElementById('personnel-status-message').className = "error";
+          });
+        };
+      }
+
+      /* Recce Form Submission */
       var recceForm = document.getElementById("recceForm");
       if (recceForm) {
         recceForm.onsubmit = function(e) {
@@ -1071,6 +1300,7 @@
         };
       }
 
+      /* Log Form Submission */
       var logForm = document.getElementById("logForm");
       if (logForm) {
         logForm.onsubmit = function(event) {
@@ -1131,4 +1361,3 @@
   </script>
 </body>
 </html>
-
