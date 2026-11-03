@@ -66,7 +66,7 @@
       <label>Location & Parking Setup</label>
       <!-- Mode Toggle Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #333; color: white;" onclick="setPinMode('venue')">📍 Set Venue Pin</button>
+        <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #df584c; color: white;" onclick="setPinMode('venue')">📍 Set Venue Pin</button>
         <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: #e5e5ea; color: #111;" onclick="setPinMode('parking')">🅿️ Set Parking Pin</button>
       </div>
 
@@ -78,8 +78,8 @@
 
       <!-- Action Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">📍 Your GPS Location</button>
-        <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset</button>
+        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">📍 Your GPS Location (Venue)</button>
+        <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset Pins</button>
       </div>
 
       <!-- Map Display -->
@@ -100,9 +100,24 @@
       <label for="recce-waze">Parking Waze URL</label>
       <input type="text" id="recce-waze" placeholder="Generated from Parking Pin (or Venue fallback)">
 
+      <!-- Photos Upload / Camera Section -->
       <label>Photos (Up to 10)</label>
-      <input type="file" id="recce-photos" accept="image/*" multiple>
-      <div id="photo-count" style="font-size: 13px; color: #666; margin-top: 4px;">0 photos selected</div>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #34c759; color: white;" onclick="document.getElementById('recce-camera-input').click()">
+          📷 Take Photo
+        </button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="document.getElementById('recce-gallery-input').click()">
+          🖼️ Photo Library
+        </button>
+      </div>
+
+      <!-- Hidden native inputs -->
+      <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
+      <input type="file" id="recce-gallery-input" accept="image/*" multiple style="display: none;">
+
+      <!-- Photo Counter & Previews -->
+      <div id="photo-count" style="font-size: 13px; color: #555; margin-top: 4px; font-weight: 600;">0 photos attached</div>
+      <div id="photo-preview-grid" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
 
       <!-- Failsafe Checkbox -->
       <div class="confirm-box">
@@ -210,28 +225,105 @@
       });
     }
 
-    // Multi-Photo Listener (Recce Form)
-    const multiPhotos = document.getElementById('recce-photos');
-    if (multiPhotos) {
-      multiPhotos.addEventListener('change', async function(e) {
-        const files = Array.from(e.target.files).slice(0, 10);
-        reccePhotos = [];
-        const countDisplay = document.getElementById('photo-count');
-        if (countDisplay) countDisplay.innerText = `${files.length} photo(s) selected (Compressing...)`;
+    // Camera & Photo Library Listeners (Recce Form)
+    const cameraInput = document.getElementById('recce-camera-input');
+    const galleryInput = document.getElementById('recce-gallery-input');
+    const previewGrid = document.getElementById('photo-preview-grid');
+    const countDisplay = document.getElementById('photo-count');
 
-        for (let f of files) {
-          try {
-            const b64 = await toBase64(f);
-            reccePhotos.push({
-              base64: b64.split(',')[1],
-              mimeType: "image/jpeg",
-              name: f.name
-            });
-          } catch (err) {
-            console.error("Compression failed for: " + f.name, err);
-          }
+    async function handleIncomingFiles(fileList) {
+      const files = Array.from(fileList);
+
+      for (let f of files) {
+        if (reccePhotos.length >= 10) {
+          alert("Maximum of 10 photos reached.");
+          break;
         }
-        if (countDisplay) countDisplay.innerText = `${reccePhotos.length} photo(s) ready`;
+
+        countDisplay.innerText = `Processing photo... (${reccePhotos.length + 1}/10)`;
+
+        try {
+          const b64WithHeader = await toBase64(f);
+          const rawB64 = b64WithHeader.split(',')[1];
+          
+          reccePhotos.push({
+            base64: rawB64,
+            mimeType: "image/jpeg",
+            name: f.name || `photo_${Date.now()}.jpg`
+          });
+
+          renderPhotoPreviews();
+        } catch (err) {
+          console.error("Compression failed for: " + f.name, err);
+        }
+      }
+
+      countDisplay.innerText = `${reccePhotos.length} photo(s) attached`;
+    }
+
+    function renderPhotoPreviews() {
+      if (!previewGrid) return;
+      previewGrid.innerHTML = "";
+
+      reccePhotos.forEach((photo, index) => {
+        const thumbWrapper = document.createElement('div');
+        thumbWrapper.style.position = 'relative';
+        thumbWrapper.style.width = '70px';
+        thumbWrapper.style.height = '70px';
+
+        const img = document.createElement('img');
+        img.src = `data:${photo.mimeType};base64,${photo.base64}`;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '6px';
+        img.style.border = '1px solid #ccc';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerText = '×';
+        removeBtn.style.position = 'absolute';
+        removeBtn.style.top = '-5px';
+        removeBtn.style.right = '-5px';
+        removeBtn.style.backgroundColor = '#d93025';
+        removeBtn.style.color = 'white';
+        removeBtn.style.border = 'none';
+        removeBtn.style.borderRadius = '50%';
+        removeBtn.style.width = '20px';
+        removeBtn.style.height = '20px';
+        removeBtn.style.fontSize = '14px';
+        removeBtn.style.fontWeight = 'bold';
+        removeBtn.style.lineHeight = '18px';
+        removeBtn.style.padding = '0';
+        removeBtn.style.cursor = 'pointer';
+
+        removeBtn.onclick = function() {
+          reccePhotos.splice(index, 1);
+          renderPhotoPreviews();
+          countDisplay.innerText = `${reccePhotos.length} photo(s) attached`;
+        };
+
+        thumbWrapper.appendChild(img);
+        thumbWrapper.appendChild(removeBtn);
+        previewGrid.appendChild(thumbWrapper);
+      });
+    }
+
+    if (cameraInput) {
+      cameraInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+          handleIncomingFiles(e.target.files);
+          cameraInput.value = "";
+        }
+      });
+    }
+
+    if (galleryInput) {
+      galleryInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+          handleIncomingFiles(e.target.files);
+          galleryInput.value = "";
+        }
       });
     }
 
@@ -414,8 +506,8 @@
 
     function updateDisplay() {
       const display = document.getElementById('coords-display');
-      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set (Tap map or search)'}<br>` +
-                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set (Switch to Parking, then tap map)'}`;
+      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat},${venueCoords.lng}` : 'Not set (Tap map or search)'}<br>` +
+                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat},${parkingCoords.lng}` : 'Not set (Switch to Parking, then tap map)'}`;
     }
 
     function clearLocation() {
@@ -550,116 +642,3 @@
       const btn = document.getElementById("recceSubmitBtn");
       btn.disabled = true;
       btn.innerText = "Generating PDF & Uploading...";
-      btn.style.backgroundColor = "#ccc";
-
-      // Build static map snapshot URL showing both pins
-      let staticMapUrl = "";
-      if (venueCoords) {
-        let markersParam = `pin-l-star+e74c3c(${venueCoords.lng},${venueCoords.lat})`;
-        if (parkingCoords) {
-          markersParam += `,pin-l-parking+2980b9(${parkingCoords.lng},${parkingCoords.lat})`;
-        }
-        staticMapUrl = `https://static-maps.yandex.ru/1.x/?l=map&size=600,300&pt=${venueCoords.lng},${venueCoords.lat},pm2rdm` +
-          (parkingCoords ? `~${parkingCoords.lng},${parkingCoords.lat},pm2blm` : '');
-      }
-
-      const payload = {
-        formType: "Recce",
-        locationName: locationName,
-        officer: officer,
-        date: document.getElementById("recce-date").value,
-        description: desc,
-        googleMapsUrl: venueGmapsVal,
-        parkingGoogleMapsUrl: document.getElementById("recce-parking-gmaps").value.trim(),
-        wazeUrl: document.getElementById("recce-waze").value.trim(),
-        lat: venueCoords ? venueCoords.lat : "0",
-        lng: venueCoords ? venueCoords.lng : "0",
-        parkingLat: parkingCoords ? parkingCoords.lat : "",
-        parkingLng: parkingCoords ? parkingCoords.lng : "",
-        staticMapUrl: staticMapUrl,
-        photos: reccePhotos
-      };
-
-      fetch(webAppUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify(payload)
-      }).then(() => {
-        alert("Submission sent successfully! Check Google Sheets.");
-        btn.disabled = false;
-        btn.innerText = "Submit & Generate PDF";
-        btn.style.backgroundColor = "#af52de";
-        document.getElementById("recceForm").reset();
-        clearLocation();
-        document.getElementById('photo-count').innerText = "0 photos selected";
-        document.getElementById('recce-date').valueAsDate = new Date();
-        reccePhotos = [];
-        goBack();
-      }).catch(err => {
-        alert("Submission network error: " + err.message);
-        btn.disabled = false;
-        btn.innerText = "Submit & Generate PDF";
-        btn.style.backgroundColor = "#af52de";
-        document.getElementById('recce-status-message').innerText = "Upload error: " + err;
-        document.getElementById('recce-status-message').className = "error";
-      });
-    });
-
-    // Standard Log Submit
-    document.getElementById("logForm").addEventListener("submit", function(event) {
-      event.preventDefault();
-
-      const logConfirm = document.getElementById("log-confirm-checkbox");
-      if (!logConfirm.checked) {
-        alert("Please tick the confirmation checkbox before submitting.");
-        return;
-      }
-
-      const confirmed = confirm("Are you sure you want to submit this log entry?");
-      if (!confirmed) return;
-
-      const btn = document.getElementById("submitBtn");
-      btn.disabled = true;
-      btn.innerText = "Uploading...";
-      btn.style.backgroundColor = "#ccc";
-
-      const payload = {
-        formType: "Log",
-        column2: document.getElementById("name").value,
-        column3: document.getElementById("date").value,
-        column4: document.getElementById("type").value,
-        column5: document.getElementById("remarks").value,
-        column6: document.getElementById("status").value,
-        column7: document.getElementById("evidence").value,
-        imageBase64: base64Image,
-        fileName: fileName,
-        mimeType: mimeType
-      };
-
-      fetch(webAppUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify(payload)
-      }).then(() => {
-        alert("Log entry sent successfully!");
-        btn.disabled = false;
-        btn.innerText = "Submit Entry";
-        btn.style.backgroundColor = "#007aff";
-        document.getElementById("logForm").reset();
-        document.getElementById('date').valueAsDate = new Date();
-        base64Image = ""; fileName = ""; mimeType = "";
-        goBack();
-      }).catch(err => {
-        alert("Log error: " + err.message);
-        btn.disabled = false;
-        btn.innerText = "Submit Entry";
-        btn.style.backgroundColor = "#007aff";
-        document.getElementById('status-message').innerText = "Error sending data.";
-        document.getElementById('status-message').className = "error";
-      });
-    });
-  </script>
-</body>
-</html>
