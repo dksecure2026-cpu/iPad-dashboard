@@ -286,6 +286,19 @@
       font-style: italic;
       color: #94a3b8;
     }
+
+    /* Staff Photo Container & Interactive Nickname Bubble */
+    .photo-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo-wrapper.has-nickname {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     .staff-thumb {
       width: 50px;
       height: 60px;
@@ -293,6 +306,7 @@
       border-radius: 4px;
       border: 1px solid var(--border-color);
       display: block;
+      background: var(--card-bg);
     }
     .staff-thumb-placeholder {
       width: 50px;
@@ -306,6 +320,46 @@
       font-size: 10px;
       color: var(--text-secondary);
       text-align: center;
+    }
+
+    /* Floating Nickname Callout Bubble */
+    .nickname-bubble {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: #0f172a;
+      color: #38bdf8;
+      border: 1.5px solid #0284c7;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+      z-index: 100;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .nickname-bubble::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: #0284c7 transparent transparent transparent;
+    }
+
+    .nickname-bubble.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
     }
 
     /* Modal Sheet Editor Popup */
@@ -384,7 +438,6 @@
       <span class="dash-btn-sub">Task Queue</span>
     </button>
 
-    <!-- Staff Profiles Viewer Button -->
     <button type="button" class="dash-btn btn-personnel" onclick="openPersonnel()">
       <span>Staff Profiles</span>
       <span class="dash-btn-sub">Live Roster & Contacts</span>
@@ -432,7 +485,7 @@
       <div class="sys-beacon" style="color: #2dd4bf;">SYNCED</div>
     </div>
     <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-      Tap any row below to edit or fill employee information and photos.
+      Tap any row below to edit or fill employee information and photos. Tap an assigned staff photo to reveal their callsign/nickname.
     </div>
 
     <div id="roster-loading-status" style="color: #60a5fa; font-size: 14px; text-align: center; padding: 20px 0;">Loading House Staff...</div>
@@ -486,6 +539,9 @@
 
         <label for="p-name">Name</label>
         <input type="text" id="p-name" placeholder="e.g. Evgeni Boguslavsky" required>
+
+        <label for="p-nickname">Assigned Nickname / Callsign (Optional)</label>
+        <input type="text" id="p-nickname" placeholder="e.g. Maverick / Bogus">
 
         <label for="p-position">Job Title / Position</label>
         <input type="text" id="p-position" placeholder="e.g. Maintenance Engineer" required>
@@ -696,7 +752,6 @@
       loadOpenItems();
     };
 
-    /* Opens the Roster Viewer automatically like Maps */
     window.openPersonnel = function() {
       window.hideAllViews();
       document.getElementById('personnel-view').style.display = 'block';
@@ -728,6 +783,34 @@
       if (s2) s2.innerText = "";
     };
 
+    /* Nickname Bubble Touch Handler (Assigned staff photos only) */
+    window.showNicknameBubble = function(event, element) {
+      event.stopPropagation(); // Prevents triggering row click/edit modal
+
+      var bubble = element.querySelector('.nickname-bubble');
+      if (!bubble) return;
+
+      // Close all other open nickname bubbles
+      document.querySelectorAll('.nickname-bubble.active').forEach(function(b) {
+        if (b !== bubble) b.classList.remove('active');
+      });
+
+      bubble.classList.toggle('active');
+
+      if (bubble.classList.contains('active')) {
+        setTimeout(function() {
+          bubble.classList.remove('active');
+        }, 2500);
+      }
+    };
+
+    // Tap anywhere on the dashboard to dismiss open bubbles
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.nickname-bubble.active').forEach(function(b) {
+        b.classList.remove('active');
+      });
+    });
+
     /* Live Staff Table Fetch & Click-to-Select Implementation */
     function loadStaffRoster() {
       var statusDiv = document.getElementById('roster-loading-status');
@@ -757,13 +840,26 @@
 
         response.roster.forEach(function(row) {
           var tr = document.createElement('tr');
-          tr.className = "clickable-row" + (row.isEmpty ? " empty-row" : "");
+          var isAssigned = !row.isEmpty && (row.name && row.name.trim() !== "");
+          var hasNickname = isAssigned && row.nickname && row.nickname.trim() !== "";
 
-          var photoTd = row.photoUrl
-            ? '<img src="' + row.photoUrl + '" class="staff-thumb">'
-            : '<div class="staff-thumb-placeholder">No Photo</div>';
+          tr.className = "clickable-row" + (!isAssigned ? " empty-row" : "");
 
-          if (row.isEmpty) {
+          var photoTd = "";
+          if (isAssigned) {
+            photoTd = '<div class="photo-wrapper ' + (hasNickname ? 'has-nickname' : '') + '" ' + 
+                      (hasNickname ? 'onclick="showNicknameBubble(event, this)"' : '') + '>' +
+                        (row.photoUrl 
+                          ? '<img src="' + row.photoUrl + '" alt="' + row.name + '" class="staff-thumb" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'50\\\' height=\\\'60\\\' viewBox=\\\'0 0 50 60\\\'><rect width=\\\'50\\\' height=\\\'60\\\' fill=\\\'%231f232b\\\'/><text x=\\\'50%\\\' y=\\\'50%\\\' dominant-baseline=\\\'middle\\\' text-anchor=\\\'middle\\\' fill=\\\'%23a4b0be\\\' font-size=\\\'9\\\'>No Photo</text></svg>\';">'
+                          : '<div class="staff-thumb-placeholder">No Photo</div>') +
+                        (hasNickname ? '<div class="nickname-bubble">“' + row.nickname + '”</div>' : '') +
+                      '</div>';
+          } else {
+            // Empty unassigned row - strictly placeholder, zero touch trigger
+            photoTd = '<div class="staff-thumb-placeholder">No Photo</div>';
+          }
+
+          if (!isAssigned) {
             tr.innerHTML = 
               '<td style="font-weight: bold; color: var(--text-secondary);">' + row.rowIndex + '</td>' +
               '<td>' + photoTd + '</td>' +
@@ -779,7 +875,7 @@
               '<td style="font-size: 13px;">' + (row.allergies || 'None') + '</td>';
           }
 
-          // Row selection event -> opens popup and pre-fills
+          // Row selection event -> opens edit modal
           tr.onclick = function() {
             openStaffModalForRow(row);
           };
@@ -805,6 +901,7 @@
         : "Edit Record: " + (row.name || "Row " + row.rowIndex);
 
       document.getElementById('p-name').value = row.name || '';
+      document.getElementById('p-nickname').value = row.nickname || '';
       document.getElementById('p-position').value = row.position || '';
       document.getElementById('p-phone').value = row.phone || '';
       document.getElementById('p-emergency').value = row.emergency || '';
@@ -824,6 +921,7 @@
 
       if (row.photoUrl) {
         img.src = row.photoUrl;
+        img.setAttribute('referrerpolicy', 'no-referrer');
         img.style.display = "block";
         placeholder.style.display = "none";
         removeBtn.style.display = "block";
@@ -843,7 +941,7 @@
 
       openStaffModalForRow({
         rowIndex: nextRow,
-        name: '', position: '', startDate: '', phone: '', emergency: '', allergies: 'None', isEmpty: true
+        name: '', nickname: '', position: '', startDate: '', phone: '', emergency: '', allergies: 'None', isEmpty: true
       });
     };
 
@@ -1386,6 +1484,7 @@
             existingPhotoFormula: document.getElementById("p-existing-photo").value,
             photoBase64: personnelPhotoBase64,
             name: document.getElementById("p-name").value.trim(),
+            nickname: document.getElementById("p-nickname").value.trim(), // Column H
             jobTitle: document.getElementById("p-position").value.trim(),
             startDate: document.getElementById("p-startdate").value,
             phone: document.getElementById("p-phone").value.trim(),
@@ -1404,7 +1503,7 @@
             btn.innerText = "Save to Row";
             btn.style.backgroundColor = "#0d9488";
             closeStaffModal();
-            loadStaffRoster(); // Refreshes the viewer table automatically
+            loadStaffRoster();
           }).catch(function(err) {
             alert("Upload failed: " + err.message);
             btn.disabled = false;
