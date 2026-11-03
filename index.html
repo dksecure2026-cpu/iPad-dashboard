@@ -78,7 +78,7 @@
 
       <!-- Action Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">🎯 Pin Current Location to Venue</button>
+        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">📍 Your GPS Location</button>
         <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset</button>
       </div>
 
@@ -315,17 +315,17 @@
       const btnGps = document.getElementById('btn-gps-action');
 
       if (mode === 'venue') {
-        btnVenue.style.backgroundColor = '#333';
+        btnVenue.style.backgroundColor = '#df584c';
         btnVenue.style.color = '#fff';
         btnParking.style.backgroundColor = '#e5e5ea';
         btnParking.style.color = '#111';
-        btnGps.innerText = "🎯 Pin Current Location to Venue";
+        btnGps.innerText = "📍 Your GPS Location (Venue)";
       } else {
         btnParking.style.backgroundColor = '#007aff';
         btnParking.style.color = '#fff';
         btnVenue.style.backgroundColor = '#e5e5ea';
         btnVenue.style.color = '#111';
-        btnGps.innerText = "🎯 Pin Current Location to Parking";
+        btnGps.innerText = "📍 Your GPS Location (Parking)";
       }
     }
 
