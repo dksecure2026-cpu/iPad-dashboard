@@ -36,19 +36,19 @@
   <!-- 1. MAIN DASHBOARD VIEW -->
   <div id="dashboard-view" class="card">
     <h1>Dashboard Menu</h1>
-    <button class="dash-btn" onclick="openForm('Security Log')">Security Log</button>
-    <button class="dash-btn" onclick="openForm('Requisition')">Requisition</button>
-    <button class="dash-btn" onclick="openForm('Incident Report')">Incident Report</button>
-    <button class="dash-btn" onclick="openForm('General Note')">General Note</button>
+    <button type="button" class="dash-btn" onclick="openForm('Security Log')">Security Log</button>
+    <button type="button" class="dash-btn" onclick="openForm('Requisition')">Requisition</button>
+    <button type="button" class="dash-btn" onclick="openForm('Incident Report')">Incident Report</button>
+    <button type="button" class="dash-btn" onclick="openForm('General Note')">General Note</button>
     
-    <button class="dash-btn" style="background-color: #af52de;" onclick="openRecce()">New Recce Report</button>
-    <button class="dash-btn" style="background-color: #007aff;" onclick="openCalendar()">Open Calendar</button>
-    <button class="dash-btn" style="background-color: #34c759;" onclick="openMap()">Open Map</button>
+    <button type="button" class="dash-btn" style="background-color: #af52de;" onclick="openRecce()">New Recce Report</button>
+    <button type="button" class="dash-btn" style="background-color: #007aff;" onclick="openCalendar()">Open Calendar</button>
+    <button type="button" class="dash-btn" style="background-color: #34c759;" onclick="openMap()">Open Map</button>
   </div>
 
   <!-- 2. RECCE FORM VIEW -->
   <div id="recce-view" class="card wide-card">
-    <button class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <h1>Recce Report</h1>
     <form id="recceForm">
       <label for="recce-location">Location Name</label>
@@ -64,28 +64,23 @@
       <textarea id="recce-desc" placeholder="Operational details, ingress routes, access codes..." required></textarea>
 
       <label>Location & Parking Setup</label>
-      <!-- Mode Toggle Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #df584c; color: white;" onclick="setPinMode('venue')">📍 Set Venue Pin</button>
         <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: #e5e5ea; color: #111;" onclick="setPinMode('parking')">🅿️ Set Parking Pin</button>
       </div>
 
-      <!-- Address Search Bar -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <input type="text" id="map-search-input" placeholder="Search address or venue name..." style="flex: 1; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #ccc;">
         <button type="button" class="back-btn" style="margin: 0; padding: 10px 14px; white-space: nowrap;" onclick="searchAddress()">🔍 Find & Pin</button>
       </div>
 
-      <!-- Action Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">📍 Your GPS Location (Venue)</button>
         <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset Pins</button>
       </div>
 
-      <!-- Map Display -->
       <div id="recce-map-container"></div>
       
-      <!-- Coordinate Status Display -->
       <div id="coords-display" class="coord-display">
         📍 Venue: Not set (Tap map or search)<br>
         🅿️ Parking: Not set (Switch mode, then tap map)
@@ -100,7 +95,6 @@
       <label for="recce-waze">Parking Waze URL</label>
       <input type="text" id="recce-waze" placeholder="Generated from Parking Pin (or Venue fallback)">
 
-      <!-- Photos Upload / Camera Section -->
       <label>Photos (Up to 10)</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #34c759; color: white;" onclick="document.getElementById('recce-camera-input').click()">
@@ -111,15 +105,12 @@
         </button>
       </div>
 
-      <!-- Hidden native inputs -->
       <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
       <input type="file" id="recce-gallery-input" accept="image/*" multiple style="display: none;">
 
-      <!-- Photo Counter & Previews -->
       <div id="photo-count" style="font-size: 13px; color: #555; margin-top: 4px; font-weight: 600;">0 photos attached</div>
       <div id="photo-preview-grid" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
 
-      <!-- Failsafe Checkbox -->
       <div class="confirm-box">
         <label class="confirm-label">
           <input type="checkbox" id="recce-confirm-checkbox" style="accent-color: #af52de;" required>
@@ -134,7 +125,7 @@
 
   <!-- 3. STANDARD LOG FORM VIEW -->
   <div id="form-view" class="card">
-    <button class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <h1 id="form-title">New Entry</h1>
     <form id="logForm">
       <label for="name">Name</label>
@@ -166,7 +157,6 @@
       <div class="divider">OR</div>
       <input type="text" id="evidence" placeholder="Paste a web link here...">
 
-      <!-- Failsafe Checkbox -->
       <div class="confirm-box">
         <label class="confirm-label">
           <input type="checkbox" id="log-confirm-checkbox" style="accent-color: #007aff;" required>
@@ -181,32 +171,35 @@
 
   <!-- 4. EMBEDDED CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
-    <button class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%23ffffff&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
   <!-- 5. EMBEDDED MAP VIEW (GOOGLE MY MAPS) -->
   <div id="map-view" class="card wide-card">
-    <button class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <iframe src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
   <script>
     const webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
 
-    const dateInput = document.getElementById('date');
-    if (dateInput) dateInput.valueAsDate = new Date();
-    const recceDateInput = document.getElementById('recce-date');
-    if (recceDateInput) recceDateInput.valueAsDate = new Date();
+    // Set Initial Dates
+    window.addEventListener('DOMContentLoaded', () => {
+      const d1 = document.getElementById('date');
+      if (d1) d1.valueAsDate = new Date();
+      const d2 = document.getElementById('recce-date');
+      if (d2) d2.valueAsDate = new Date();
+    });
 
     let base64Image = "", fileName = "", mimeType = "";
     let reccePhotos = [];
     
     // Multi-Pin State
     let recceMap = null;
-    let currentPinMode = 'venue'; // 'venue' or 'parking'
-    let venueCoords = null;       // { lat, lng }
-    let parkingCoords = null;     // { lat, lng }
+    let currentPinMode = 'venue';
+    let venueCoords = null;
+    let parkingCoords = null;
     let venueMarker = null;
     let parkingMarker = null;
 
@@ -240,7 +233,7 @@
           break;
         }
 
-        countDisplay.innerText = `Processing photo... (${reccePhotos.length + 1}/10)`;
+        if (countDisplay) countDisplay.innerText = `Processing photo... (${reccePhotos.length + 1}/10)`;
 
         try {
           const b64WithHeader = await toBase64(f);
@@ -258,7 +251,7 @@
         }
       }
 
-      countDisplay.innerText = `${reccePhotos.length} photo(s) attached`;
+      if (countDisplay) countDisplay.innerText = `${reccePhotos.length} photo(s) attached`;
     }
 
     function renderPhotoPreviews() {
@@ -300,7 +293,7 @@
         removeBtn.onclick = function() {
           reccePhotos.splice(index, 1);
           renderPhotoPreviews();
-          countDisplay.innerText = `${reccePhotos.length} photo(s) attached`;
+          if (countDisplay) countDisplay.innerText = `${reccePhotos.length} photo(s) attached`;
         };
 
         thumbWrapper.appendChild(img);
@@ -386,10 +379,12 @@
 
     function openRecce() {
       hideAllViews();
-      document.getElementById('recce-view').style.display = 'block';
+      // Ensure the container is shown before Leaflet touches dimensions
+      const recceView = document.getElementById('recce-view');
+      recceView.style.display = 'block';
       setTimeout(function() {
         initRecceMap();
-      }, 200);
+      }, 150);
     }
 
     function goBack() {
@@ -399,7 +394,6 @@
       document.getElementById('recce-status-message').innerText = "";
     }
 
-    // Toggle Pin Mode (Venue vs Parking)
     function setPinMode(mode) {
       currentPinMode = mode;
       const btnVenue = document.getElementById('btn-mode-venue');
@@ -422,22 +416,25 @@
     }
 
     function initRecceMap() {
-      const container = document.getElementById('recce-map-container');
-      if (!container) return;
+      try {
+        const container = document.getElementById('recce-map-container');
+        if (!container) return;
 
-      if (!recceMap) {
-        recceMap = L.map('recce-map-container').setView([32.0853, 34.7818], 12);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Tiles &copy; Esri'
-        }).addTo(recceMap);
+        if (!recceMap) {
+          recceMap = L.map('recce-map-container').setView([32.5206, 34.9037], 13);
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+          }).addTo(recceMap);
 
-        // Map Click Listener
-        recceMap.on('click', function(e) {
-          handleMapClick(e.latlng.lat, e.latlng.lng);
-        });
+          recceMap.on('click', function(e) {
+            handleMapClick(e.latlng.lat, e.latlng.lng);
+          });
+        }
+        recceMap.invalidateSize();
+      } catch (e) {
+        console.warn("Leaflet init note:", e);
       }
-      recceMap.invalidateSize();
     }
 
     function handleMapClick(lat, lng) {
@@ -449,7 +446,6 @@
       updateDisplay();
     }
 
-    // Set Venue Pin
     function setVenuePin(lat, lng) {
       venueCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
       
@@ -478,7 +474,6 @@
       }
     }
 
-    // Set Parking Pin
     function setParkingPin(lat, lng) {
       parkingCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
 
@@ -527,7 +522,6 @@
       setPinMode('venue');
     }
 
-    // Dynamic GPS Function: pins to currentPinMode ('venue' or 'parking')
     function useCurrentLocation() {
       if (!navigator.geolocation) {
         alert("Geolocation is not supported by your browser.");
@@ -558,7 +552,6 @@
       );
     }
 
-    // Search Address & Drop Pin to currently selected mode
     async function searchAddress() {
       const query = document.getElementById('map-search-input').value.trim();
       if (!query) {
@@ -674,8 +667,9 @@
         clearLocation();
         reccePhotos = [];
         if (previewGrid) previewGrid.innerHTML = "";
-        countDisplay.innerText = "0 photos attached";
-        document.getElementById('recce-date').valueAsDate = new Date();
+        if (countDisplay) countDisplay.innerText = "0 photos attached";
+        const dRecce = document.getElementById('recce-date');
+        if (dRecce) dRecce.valueAsDate = new Date();
         goBack();
       }).catch(err => {
         alert("Submission network error: " + err.message);
@@ -729,7 +723,8 @@
         btn.innerText = "Submit Entry";
         btn.style.backgroundColor = "#007aff";
         document.getElementById("logForm").reset();
-        document.getElementById('date').valueAsDate = new Date();
+        const dLog = document.getElementById('date');
+        if (dLog) dLog.valueAsDate = new Date();
         base64Image = ""; fileName = ""; mimeType = "";
         goBack();
       }).catch(err => {
