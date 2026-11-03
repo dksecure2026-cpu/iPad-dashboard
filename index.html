@@ -1,17 +1,3 @@
-Here is the updated single-file HTML code.
-
-### Key Additions & Modifications
-
-1. **Language Segmented Control:** Placed directly at the top of the `#staff-modal` editor (`English | Русский | עברית`).
-2. **Direction & Alignment Management:** Automatically switches the modal card between `dir="ltr"` and `dir="rtl"` when Hebrew is selected (with mirrored right-aligned inputs and flipped cancel/submit actions).
-3. **Data Translation Engine:** Localizes all labels, placeholders, photo buttons, verification check notes, and action button text across English, Russian, and Hebrew.
-4. **Data Integrity Maintained:**
-* Defaults back to **English** every time the modal is opened.
-* Preserves underlying English data formatting: if the allergy input retains default or empty states, it posts standard values like `"None"` so your Google Sheet remains clean and standardized in English.
-
-
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
