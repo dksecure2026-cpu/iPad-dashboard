@@ -3,186 +3,474 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>iPad Dashboard</title>
+  <title>TAC-OPS Dashboard</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body { font-family: -apple-system, sans-serif; background-color: #f4f4f7; padding: 20px; display: flex; justify-content: center; margin: 0; }
-    .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); width: 100%; max-width: 600px; box-sizing: border-box; }
+    :root {
+      --bg-core: #0c0f12;
+      --card-bg: #14181e;
+      --panel-border: #242c36;
+      --text-main: #e2e8f0;
+      --text-muted: #8492a6;
+      --accent-glow: rgba(0, 255, 157, 0.15);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
+      background-color: var(--bg-core);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(20, 32, 45, 0.4) 0%, transparent 70%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 24px 24px, 24px 24px;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--panel-border);
+      padding: 22px;
+      border-radius: 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.03);
+      width: 100%;
+      max-width: 580px;
+      position: relative;
+    }
+
+    .card::before {
+      content: "// FIELD-TERMINAL: SEC-TAC-01 //";
+      display: block;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #5c6b7e;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
     .wide-card { max-width: 900px; }
-    h1 { text-align: center; color: #222; margin-top: 0; }
-    .dash-btn { width: 100%; padding: 18px; background-color: #333; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; margin-bottom: 12px; cursor: pointer; -webkit-appearance: none; }
-    .dash-btn:active { background-color: #000; }
-    .back-btn { padding: 10px 14px; background-color: #e5e5ea; color: #111; border: none; border-radius: 8px; font-size: 15px; margin-bottom: 15px; font-weight: 600; cursor: pointer; -webkit-appearance: none; }
-    label { font-weight: 600; display: block; margin-top: 14px; margin-bottom: 6px; color: #444; }
-    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; font-family: inherit; }
+
+    /* Tactical Title */
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #242c36;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 20px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 0;
+      color: #f1f5f9;
+      font-weight: 800;
+    }
+
+    .sys-beacon {
+      font-size: 11px;
+      font-weight: bold;
+      color: #34c759;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 1px;
+    }
+
+    .sys-beacon::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: #34c759;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #34c759;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* Tactical Military Dashboard Buttons */
+    .dash-btn {
+      width: 100%;
+      padding: 16px 18px;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      position: relative;
+      background-clip: padding-box;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 3px 6px rgba(0,0,0,0.3);
+      -webkit-appearance: none;
+      font-family: inherit;
+    }
+
+    .dash-btn:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .dash-btn-sub {
+      font-size: 11px;
+      opacity: 0.7;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+
+    /* Color Assignments */
+    .btn-sec-log { background: #232931; border-left: 6px solid #4a5568; }
+    .btn-action-items { background: #b45309; border-left: 6px solid #f59e0b; }
+    .btn-recce { background: #6b21a8; border-left: 6px solid #a855f7; }
+    .btn-calendar { background: #1d4ed8; border-left: 6px solid #3b82f6; }
+    .btn-map { background: #15803d; border-left: 6px solid #22c55e; }
+
+    /* Tactical Form Elements */
+    .back-btn {
+      padding: 8px 14px;
+      background-color: #1f2630;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .back-btn:hover { background-color: #27313f; color: #fff; }
+
+    label {
+      font-weight: 700;
+      display: block;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: #94a3b8;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      background: #0f1317;
+      border: 1px solid #2c3746;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #f1f5f9;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
     textarea { resize: vertical; min-height: 90px; }
-    input[type="file"] { padding: 10px; background: #f8f9fa; border: 1px dashed #b0b0b0; }
-    .submit-btn { width: 100%; padding: 16px; background-color: #007aff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 16px; cursor: pointer; -webkit-appearance: none; }
+    input[type="file"] { padding: 10px; background: #0c0f13; border: 1px dashed #334155; color: #8492a6; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background-color: #2563eb;
+      color: white;
+      border: 1px solid #3b82f6;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: bold;
+      margin-top: 18px;
+      cursor: pointer;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-family: inherit;
+    }
+
     #form-view, #calendar-view, #map-view, #recce-view, #open-items-view { display: none; }
-    #status-message, #recce-status-message { text-align: center; margin-top: 14px; font-weight: bold; }
-    .error { color: #d93025; }
-    .divider { text-align: center; margin: 12px 0; font-weight: bold; color: #888; font-size: 13px; }
-    iframe { border: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    #recce-map-container { height: 340px; width: 100%; border-radius: 8px; border: 1px solid #ccc; margin-top: 6px; cursor: crosshair; }
-    .coord-display { font-size: 13px; color: #444; margin-top: 6px; line-height: 1.5; background: #fafafa; padding: 8px 10px; border-radius: 6px; border: 1px solid #e5e5ea; }
-    .confirm-box { background: #f8f9fa; border: 1px solid #dcdce0; border-radius: 8px; padding: 14px; margin-top: 20px; }
-    .confirm-label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin: 0; font-size: 15px; color: #222; font-weight: 500; }
-    .confirm-label input[type="checkbox"] { width: 22px; height: 22px; margin: 0; margin-top: 2px; flex-shrink: 0; }
-    .task-card { background: #fdfdfd; border: 1px solid #e1e4e8; border-left: 5px solid #ff9500; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-    .task-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; }
-    .close-item-btn { width: 100%; padding: 12px; background-color: #34c759; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; margin-top: 10px; cursor: pointer; }
+    #status-message, #recce-status-message { text-align: center; margin-top: 14px; font-weight: bold; font-size: 13px; }
+    .error { color: #ef4444; }
+    .divider { text-align: center; margin: 12px 0; font-weight: bold; color: #475569; font-size: 12px; letter-spacing: 1px; }
+
+    iframe { border: 1px solid #2c3746; border-radius: 4px; }
+    #recce-map-container { height: 340px; width: 100%; border-radius: 4px; border: 1px solid #2c3746; margin-top: 6px; cursor: crosshair; }
+    
+    .coord-display {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 8px;
+      line-height: 1.6;
+      background: #0f1317;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #242c36;
+      border-left: 3px solid #3b82f6;
+    }
+
+    .confirm-box {
+      background: #0f1317;
+      border: 1px solid #2c3746;
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 20px;
+    }
+    .confirm-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+    .confirm-label input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; }
+
+    .task-card {
+      background: #0f1317;
+      border: 1px solid #242c36;
+      border-left: 4px solid #f59e0b;
+      border-radius: 4px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .task-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .close-item-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #166534;
+      color: #f0fdf4;
+      border: 1px solid #22c55e;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 13px;
+      margin-top: 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: inherit;
+    }
   </style>
 </head>
 <body>
 
   <!-- 1. DASHBOARD MENU -->
   <div id="dashboard-view" class="card">
-    <h1>Dashboard Menu</h1>
-    <button type="button" class="dash-btn" onclick="openForm('Security Log')">Security Log</button>
-    <button type="button" class="dash-btn" style="background-color: #ff9500;" onclick="openOpenItems()">⚠️ Open Action Items</button>
-    <button type="button" class="dash-btn" style="background-color: #af52de;" onclick="openRecce()">New Recce Report</button>
-    <button type="button" class="dash-btn" style="background-color: #007aff;" onclick="openCalendar()">Open Calendar</button>
-    <button type="button" class="dash-btn" style="background-color: #34c759;" onclick="openMap()">Open Map</button>
+    <div class="terminal-header">
+      <h1>Ops Terminal</h1>
+      <div class="sys-beacon">SYS: READY</div>
+    </div>
+
+    <button type="button" class="dash-btn btn-sec-log" onclick="openForm('Security Log')">
+      <span>Security Log</span>
+      <span class="dash-btn-sub">[LOG-01]</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-action-items" onclick="openOpenItems()">
+      <span>⚠️ Open Action Items</span>
+      <span class="dash-btn-sub">[PENDING]</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-recce" onclick="openRecce()">
+      <span>New Recce Report</span>
+      <span class="dash-btn-sub">[RECON-PDF]</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-calendar" onclick="openCalendar()">
+      <span>Tactical Calendar</span>
+      <span class="dash-btn-sub">[SYNC-CAL]</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-map" onclick="openMap()">
+      <span>Tactical Map HUD</span>
+      <span class="dash-btn-sub">[SAT-GEO]</span>
+    </button>
   </div>
 
   <!-- 2. OPEN ACTION ITEMS VIEW -->
   <div id="open-items-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <h1>Open Action Items</h1>
-    <div id="open-items-status" style="text-align: center; color: #666; font-weight: bold; margin-bottom: 15px;">Loading active tasks...</div>
+    <button type="button" class="back-btn" onclick="goBack()">← Return to Menu</button>
+    <div class="terminal-header">
+      <h1>Active Task Queue</h1>
+      <div class="sys-beacon">QUERYING LOGS</div>
+    </div>
+    <div id="open-items-status" style="color: #94a3b8; font-size: 13px; margin-bottom: 15px;">Loading active tasks from database...</div>
     <div id="open-items-list"></div>
   </div>
 
   <!-- 3. RECCE FORM VIEW -->
   <div id="recce-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <h1>Recce Report</h1>
-    <form id="recceForm">
-      <label for="recce-location">Location Name</label>
-      <input type="text" id="recce-location" placeholder="e.g. MARK SWIMMING COUNTRY CLUB" required>
+    <button type="button" class="back-btn" onclick="goBack()">← Return to Menu</button>
+    <div class="terminal-header">
+      <h1>Recce Reconnaissance Report</h1>
+      <div class="sys-beacon">GEO-PDF READY</div>
+    </div>
 
-      <label for="recce-officer">Officer Name</label>
+    <form id="recceForm">
+      <label for="recce-location">Target Location / Facility Name</label>
+      <input type="text" id="recce-location" placeholder="e.g. COMPOUND ALPHA / HARBOR FACILITY" required>
+
+      <label for="recce-officer">Operating Officer Call-Sign / Name</label>
       <input type="text" id="recce-officer" placeholder="Your name" required>
 
-      <label for="recce-date">Date</label>
+      <label for="recce-date">Mission Date</label>
       <input type="date" id="recce-date" required>
 
-      <label for="recce-desc">Description / Operational Notes</label>
-      <textarea id="recce-desc" placeholder="Operational details, ingress routes, access codes..." required></textarea>
+      <label for="recce-desc">Operational Notes / Intelligence Brief</label>
+      <textarea id="recce-desc" placeholder="Ingress routes, perimeter fence status, access security codes..." required></textarea>
 
-      <label>Location & Parking Setup</label>
+      <label>Target Pins & Navigation Setup</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #df584c; color: white;" onclick="setPinMode('venue')">📍 Set Venue Pin</button>
-        <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: #e5e5ea; color: #111;" onclick="setPinMode('parking')">🅿️ Set Parking Pin</button>
+        <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #b91c1c; color: white; border-color: #ef4444;" onclick="setPinMode('venue')">📍 Pin Target Venue</button>
+        <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: #1e293b; color: #cbd5e1;" onclick="setPinMode('parking')">🅿️ Pin Parking / Staging</button>
       </div>
 
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <input type="text" id="map-search-input" placeholder="Search address or venue name..." style="flex: 1; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #ccc;">
-        <button type="button" class="back-btn" style="margin: 0; padding: 10px 14px; white-space: nowrap;" onclick="searchAddress()">🔍 Find & Pin</button>
+        <input type="text" id="map-search-input" placeholder="Search address, junction or facility..." style="flex: 1;">
+        <button type="button" class="back-btn" style="margin: 0; white-space: nowrap;" onclick="searchAddress()">🔍 Find & Pin</button>
       </div>
 
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="useCurrentLocation()">📍 Your GPS Location (Venue)</button>
+        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #1d4ed8; color: white; border-color: #3b82f6;" onclick="useCurrentLocation()">🎯 Current GPS to Target Venue</button>
         <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset Pins</button>
       </div>
 
       <div id="recce-map-container"></div>
       
       <div id="coords-display" class="coord-display">
-        📍 Venue: Not set (Tap map or search)<br>
-        🅿️ Parking: Not set (Switch mode, then tap map)
+        📍 VENUE: Not set (Tap map or enter search)<br>
+        🅿️ STAGING: Not set (Switch mode, then tap map)
       </div>
 
       <label for="recce-venue-gmaps">Venue Google Maps URL</label>
       <input type="text" id="recce-venue-gmaps" placeholder="Generated from Venue Pin" required>
 
-      <label for="recce-parking-gmaps">Parking Google Maps URL</label>
+      <label for="recce-parking-gmaps">Staging / Parking Google Maps URL</label>
       <input type="text" id="recce-parking-gmaps" placeholder="Generated from Parking Pin">
 
-      <label for="recce-waze">Parking Waze URL</label>
-      <input type="text" id="recce-waze" placeholder="Generated from Parking Pin (or Venue fallback)">
+      <label for="recce-waze">Tactical Waze Direct Route</label>
+      <input type="text" id="recce-waze" placeholder="Generated from Parking/Venue Pin">
 
-      <label>Photos (Up to 10)</label>
+      <label>Field Recon Photographs (Max 10)</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #34c759; color: white;" onclick="triggerCamera()">
-          📷 Take Photo
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #15803d; color: white; border-color: #22c55e;" onclick="triggerCamera()">
+          📷 Live Capture
         </button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #007aff; color: white;" onclick="triggerGallery()">
-          🖼️ Photo Library
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #1d4ed8; color: white; border-color: #3b82f6;" onclick="triggerGallery()">
+          🖼️ Device Gallery
         </button>
       </div>
 
       <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
       <input type="file" id="recce-gallery-input" accept="image/*" multiple style="display: none;">
 
-      <div id="photo-count" style="font-size: 13px; color: #555; margin-top: 4px; font-weight: 600;">0 photos attached</div>
+      <div id="photo-count" style="font-size: 12px; color: #94a3b8; margin-top: 4px;">0 images attached</div>
       <div id="photo-preview-grid" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
 
       <div class="confirm-box">
         <label class="confirm-label">
-          <input type="checkbox" id="recce-confirm-checkbox" style="accent-color: #af52de;" required>
-          <span>I have reviewed the details, photos, and location pins, and confirm this report is complete.</span>
+          <input type="checkbox" id="recce-confirm-checkbox" style="accent-color: #a855f7;" required>
+          <span>I verify all recon coordinates, photographic evidence, and access intelligence are accurate.</span>
         </label>
       </div>
 
-      <button type="submit" id="recceSubmitBtn" class="submit-btn" style="background-color: #af52de;">Submit & Generate PDF</button>
+      <button type="submit" id="recceSubmitBtn" class="submit-btn" style="background-color: #6b21a8; border-color: #a855f7;">Generate & Submit Intel PDF</button>
     </form>
     <div id="recce-status-message"></div>
   </div>
 
   <!-- 4. STANDARD LOG FORM VIEW -->
   <div id="form-view" class="card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <h1 id="form-title">Security Log</h1>
+    <button type="button" class="back-btn" onclick="goBack()">← Return to Menu</button>
+    <div class="terminal-header">
+      <h1 id="form-title">Security Log</h1>
+      <div class="sys-beacon">SEC-LOG</div>
+    </div>
+
     <form id="logForm">
-      <label for="name">Name</label>
+      <label for="name">Reporting Officer</label>
       <input type="text" id="name" required>
 
-      <label for="date">Today's Date</label>
+      <label for="date">Incident / Log Date</label>
       <input type="date" id="date" required>
 
-      <label for="type">Type of Entry</label>
+      <label for="type">Log Classification</label>
       <select id="type" required>
         <option value="Security Log">Security Log</option>
       </select>
 
-      <label for="remarks">Remarks / Issue Details</label>
+      <label for="remarks">Details & Operational Narrative</label>
       <textarea id="remarks" required></textarea>
 
-      <label for="status">Status</label>
+      <label for="status">Action Status</label>
       <select id="status" required>
-        <option value="Open">Open</option>
-        <option value="Pending">Pending</option>
-        <option value="Closed">Closed</option>
+        <option value="Open">Open (Action Required)</option>
+        <option value="Pending">Pending (In Progress)</option>
+        <option value="Closed">Closed (Resolved)</option>
       </select>
 
-      <label>Supporting Evidence (Choose ONE)</label>
+      <label>Supporting Evidence / Photo</label>
       <input type="file" id="photo-upload" accept="image/*">
-      <div class="divider">OR</div>
-      <input type="text" id="evidence" placeholder="Paste a web link here...">
+      <div class="divider">- OR PASTE WEB RESOURCE -</div>
+      <input type="text" id="evidence" placeholder="https://...">
 
       <div class="confirm-box">
         <label class="confirm-label">
-          <input type="checkbox" id="log-confirm-checkbox" style="accent-color: #007aff;" required>
-          <span>I confirm this log entry is complete and ready to log.</span>
+          <input type="checkbox" id="log-confirm-checkbox" style="accent-color: #2563eb;" required>
+          <span>I confirm this operational entry is complete and logged.</span>
         </label>
       </div>
 
-      <button type="submit" id="submitBtn" class="submit-btn">Submit Entry</button>
+      <button type="submit" id="submitBtn" class="submit-btn">Transmit Entry</button>
     </form>
     <div id="status-message"></div>
   </div>
 
   <!-- 5. EMBEDDED CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%23ffffff&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
+    <button type="button" class="back-btn" onclick="goBack()">← Return to Menu</button>
+    <div class="terminal-header">
+      <h1>Operational Duty Calendar</h1>
+      <div class="sys-beacon">LIVE SYNC</div>
+    </div>
+    <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%230c0f12&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 6. EMBEDDED MAP VIEW (GOOGLE MY MAPS) -->
+  <!-- 6. EMBEDDED MAP VIEW -->
   <div id="map-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <button type="button" class="back-btn" onclick="goBack()">← Return to Menu</button>
+    <div class="terminal-header">
+      <h1>Strategic Perimeter HUD Map</h1>
+      <div class="sys-beacon">SATELLITE ACTIVE</div>
+    </div>
     <iframe src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
@@ -248,11 +536,10 @@
       if (s2) s2.innerText = "";
     };
 
-    // Load Open Items via JSONP (bypasses browser CORS blocks)
     function loadOpenItems() {
       var statusDiv = document.getElementById('open-items-status');
       var listDiv = document.getElementById('open-items-list');
-      statusDiv.innerText = "Checking Google Sheet for open entries...";
+      statusDiv.innerText = "Querying live database for active priority tasks...";
       listDiv.innerHTML = "";
 
       var scriptId = 'jsonp-open-items';
@@ -261,33 +548,34 @@
 
       window.handleOpenItemsCallback = function(response) {
         if (!response || !response.items || response.items.length === 0) {
-          statusDiv.innerText = "✅ No open or pending action items. All tasks are closed!";
+          statusDiv.innerText = "✓ ALL PRIORITY ITEMS RESOLVED. NO OPEN ACTIONS.";
           return;
         }
 
-        statusDiv.innerText = "Found " + response.items.length + " active issue(s):";
+        statusDiv.innerText = "ACTIVE ACTIONS LOGGED (" + response.items.length + "):";
         listDiv.innerHTML = "";
 
         response.items.forEach(function(item) {
           var card = document.createElement('div');
           card.className = 'task-card';
 
-          var badgeColor = item.status.toLowerCase() === 'open' ? '#d93025' : '#f57f17';
-          var badgeBg = item.status.toLowerCase() === 'open' ? '#ffebee' : '#fff8e1';
+          var isPending = item.status.toLowerCase() === 'pending';
+          var badgeColor = isPending ? '#fbbf24' : '#f87171';
+          var badgeBg = isPending ? '#451a03' : '#450a0a';
 
           var evidenceHtml = item.evidence 
-            ? '<div style="margin-top: 6px;"><a href="' + item.evidence + '" target="_blank" style="color: #007aff; font-weight: bold; font-size: 13px;">🔗 View Uploaded Evidence</a></div>'
+            ? '<div style="margin-top: 8px;"><a href="' + item.evidence + '" target="_blank" style="color: #60a5fa; font-weight: bold; font-size: 13px; text-decoration: none;">🔗 [VIEW EVIDENCE ATTACHMENT]</a></div>'
             : '';
 
           card.innerHTML = 
-            '<div>' +
-              '<span class="task-badge" style="background: ' + badgeBg + '; color: ' + badgeColor + ';">' + item.status + '</span>' +
-              '<span style="font-size: 12px; color: #777; margin-left: 8px;">' + (item.date || '') + ' | Logged by: ' + (item.name || 'Officer') + '</span>' +
+            '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+              '<span class="task-badge" style="background: ' + badgeBg + '; color: ' + badgeColor + '; border: 1px solid ' + badgeColor + ';">' + item.status + '</span>' +
+              '<span style="font-size: 11px; color: #94a3b8;">' + (item.date || '') + ' // CALLSIGN: ' + (item.name || 'OFFICER').toUpperCase() + '</span>' +
             '</div>' +
-            '<div style="font-size: 15px; font-weight: bold; margin: 8px 0 4px 0; color: #222;">' + (item.type || 'Log Entry') + '</div>' +
-            '<div style="font-size: 14px; line-height: 1.5; color: #444; white-space: pre-wrap; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #eee;">' + (item.remarks || 'No remarks provided') + '</div>' +
+            '<div style="font-size: 14px; font-weight: bold; margin: 10px 0 6px 0; color: #f8fafc;">CLASSIFICATION: ' + (item.type || 'LOG ENTRY').toUpperCase() + '</div>' +
+            '<div style="font-size: 13px; line-height: 1.5; color: #cbd5e1; white-space: pre-wrap; background: #07090b; padding: 10px; border-radius: 4px; border: 1px solid #1e293b;">' + (item.remarks || 'No operational narrative logged.') + '</div>' +
             evidenceHtml +
-            '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark as Closed (Turns Green in Sheet)</button>';
+            '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ RESOLVE & CLOSE INCIDENT</button>';
 
           listDiv.appendChild(card);
         });
@@ -299,15 +587,14 @@
       document.body.appendChild(script);
     }
 
-    // Close item handler
     window.closeLogItem = function(rowIndex) {
-      if (!confirm("Are you sure you want to mark this item as Closed?")) return;
+      if (!confirm("Confirm resolution and close action item in tactical sheet?")) return;
 
       var btn = document.getElementById('btn-close-' + rowIndex);
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "Closing in Sheet...";
-        btn.style.backgroundColor = "#aaa";
+        btn.innerText = "Transmitting Status...";
+        btn.style.backgroundColor = "#334155";
       }
 
       fetch(webAppUrl, {
@@ -319,14 +606,14 @@
           rowIndex: rowIndex
         })
       }).then(function() {
-        alert("Item closed successfully! It is now marked green in Google Sheets.");
-        loadOpenItems(); // Refresh the active list
+        alert("Entry resolved. Marked green in database.");
+        loadOpenItems();
       }).catch(function(err) {
-        alert("Error closing item: " + err.message);
+        alert("Transmission error: " + err.message);
         if (btn) {
           btn.disabled = false;
-          btn.innerText = "✓ Mark as Closed";
-          btn.style.backgroundColor = "#34c759";
+          btn.innerText = "✓ RESOLVE & CLOSE INCIDENT";
+          btn.style.backgroundColor = "#166534";
         }
       });
     };
@@ -348,17 +635,21 @@
       var btnGps = document.getElementById('btn-gps-action');
 
       if (mode === 'venue') {
-        btnVenue.style.backgroundColor = '#df584c';
+        btnVenue.style.backgroundColor = '#b91c1c';
         btnVenue.style.color = '#fff';
-        btnParking.style.backgroundColor = '#e5e5ea';
-        btnParking.style.color = '#111';
-        btnGps.innerText = "📍 Your GPS Location (Venue)";
+        btnVenue.style.borderColor = '#ef4444';
+        btnParking.style.backgroundColor = '#1e293b';
+        btnParking.style.color = '#cbd5e1';
+        btnParking.style.borderColor = '#334155';
+        btnGps.innerText = "🎯 Current GPS to Target Venue";
       } else {
-        btnParking.style.backgroundColor = '#007aff';
+        btnParking.style.backgroundColor = '#1d4ed8';
         btnParking.style.color = '#fff';
-        btnVenue.style.backgroundColor = '#e5e5ea';
-        btnVenue.style.color = '#111';
-        btnGps.innerText = "📍 Your GPS Location (Parking)";
+        btnParking.style.borderColor = '#3b82f6';
+        btnVenue.style.backgroundColor = '#1e293b';
+        btnVenue.style.color = '#cbd5e1';
+        btnVenue.style.borderColor = '#334155';
+        btnGps.innerText = "🎯 Current GPS to Staging / Parking";
       }
     };
 
@@ -380,7 +671,7 @@
         }
         recceMap.invalidateSize();
       } catch (err) {
-        console.warn("Leaflet init error:", err);
+        console.warn("Leaflet map note:", err);
       }
     }
 
@@ -412,7 +703,7 @@
           venueMarker = L.marker([venueCoords.lat, venueCoords.lng], {
             icon: redIcon,
             title: "Venue"
-          }).addTo(recceMap).bindPopup("📍 Venue").openPopup();
+          }).addTo(recceMap).bindPopup("📍 Target Venue").openPopup();
         }
       }
 
@@ -442,7 +733,7 @@
           parkingMarker = L.marker([parkingCoords.lat, parkingCoords.lng], {
             icon: blueIcon,
             title: "Parking"
-          }).addTo(recceMap).bindPopup("🅿️ Parking").openPopup();
+          }).addTo(recceMap).bindPopup("🅿️ Staging / Parking").openPopup();
         }
       }
 
@@ -452,8 +743,8 @@
 
     function updateDisplay() {
       var display = document.getElementById('coords-display');
-      display.innerHTML = '📍 Venue: ' + (venueCoords ? (venueCoords.lat + ', ' + venueCoords.lng) : 'Not set (Tap map or search)') + '<br>' +
-                          '🅿️ Parking: ' + (parkingCoords ? (parkingCoords.lat + ', ' + parkingCoords.lng) : 'Not set (Switch to Parking, then tap map)');
+      display.innerHTML = '📍 VENUE: ' + (venueCoords ? (venueCoords.lat + ', ' + venueCoords.lng) : 'Not set (Tap map / Search)') + '<br>' +
+                          '🅿️ STAGING: ' + (parkingCoords ? (parkingCoords.lat + ', ' + parkingCoords.lng) : 'Not set (Switch mode, tap map)');
     }
 
     window.clearLocation = function() {
@@ -463,7 +754,7 @@
       if (venueMarker && recceMap) { recceMap.removeLayer(venueMarker); venueMarker = null; }
       if (parkingMarker && recceMap) { recceMap.removeLayer(parkingMarker); parkingMarker = null; }
 
-      document.getElementById('coords-display').innerHTML = '📍 Venue: Not set (Tap map or search)<br>🅿️ Parking: Not set (Switch mode, then tap map)';
+      document.getElementById('coords-display').innerHTML = '📍 VENUE: Not set (Tap map / Search)<br>🅿️ STAGING: Not set (Switch mode, tap map)';
       document.getElementById('recce-venue-gmaps').value = "";
       document.getElementById('recce-parking-gmaps').value = "";
       document.getElementById('recce-waze').value = "";
@@ -475,13 +766,13 @@
 
     window.useCurrentLocation = function() {
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
+        alert("Hardware geolocation unavailable.");
         return;
       }
 
-      var targetName = currentPinMode === 'venue' ? "Venue" : "Parking";
+      var targetName = currentPinMode === 'venue' ? "Target Venue" : "Staging / Parking";
       var coordsDisplay = document.getElementById('coords-display');
-      coordsDisplay.innerText = "Fetching current GPS location for " + targetName + "...";
+      coordsDisplay.innerText = "Acquiring precision GPS fix for " + targetName + "...";
 
       navigator.geolocation.getCurrentPosition(
         function(pos) {
@@ -497,7 +788,7 @@
           updateDisplay();
         },
         function(err) {
-          coordsDisplay.innerHTML = "⚠️ Unable to retrieve GPS (" + err.message + "). Tap the map directly.";
+          coordsDisplay.innerHTML = "⚠️ GPS Lock Error (" + err.message + "). Tap map directly.";
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -506,12 +797,12 @@
     window.searchAddress = function() {
       var query = document.getElementById('map-search-input').value.trim();
       if (!query) {
-        alert("Please enter an address or place name to search.");
+        alert("Enter a search term or location.");
         return;
       }
 
       var coordsDisplay = document.getElementById('coords-display');
-      coordsDisplay.innerText = 'Searching for "' + query + '"...';
+      coordsDisplay.innerText = 'Resolving geocode for "' + query + '"...';
 
       var endpoint = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&accept-language=en&limit=1';
       fetch(endpoint, { headers: { 'Accept': 'application/json' } })
@@ -527,18 +818,18 @@
               setVenuePin(lat, lng);
               var locInput = document.getElementById("recce-location");
               if (!locInput.value) {
-                locInput.value = results[0].display_name.split(',')[0];
+                locInput.value = results[0].display_name.split(',')[0].toUpperCase();
               }
             } else {
               setParkingPin(lat, lng);
             }
             updateDisplay();
           } else {
-            alert("Location not found. Try adding a city name or tap the map directly.");
+            alert("No coordinates found. Tap map directly.");
           }
         })
         .catch(function() {
-          alert("Search failed. Place pin manually on the map.");
+          alert("Network geocode failure. Tap map manually.");
         });
     };
 
@@ -593,8 +884,8 @@
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'cover';
-        img.style.borderRadius = '6px';
-        img.style.border = '1px solid #ccc';
+        img.style.borderRadius = '4px';
+        img.style.border = '1px solid #334155';
 
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -602,7 +893,7 @@
         removeBtn.style.position = 'absolute';
         removeBtn.style.top = '-5px';
         removeBtn.style.right = '-5px';
-        removeBtn.style.backgroundColor = '#d93025';
+        removeBtn.style.backgroundColor = '#dc2626';
         removeBtn.style.color = 'white';
         removeBtn.style.border = 'none';
         removeBtn.style.borderRadius = '50%';
@@ -617,7 +908,7 @@
         removeBtn.onclick = function() {
           reccePhotos.splice(index, 1);
           renderPhotoPreviews();
-          if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
+          if (countDisplay) countDisplay.innerText = reccePhotos.length + " image(s) attached";
         };
 
         thumbWrapper.appendChild(img);
@@ -632,23 +923,23 @@
 
       files.forEach(function(f) {
         if (reccePhotos.length >= 10) {
-          alert("Maximum of 10 photos reached.");
+          alert("Maximum 10 imagery attachments allowed.");
           return;
         }
 
-        if (countDisplay) countDisplay.innerText = "Processing photo... (" + (reccePhotos.length + 1) + "/10)";
+        if (countDisplay) countDisplay.innerText = "Encoding imagery... (" + (reccePhotos.length + 1) + "/10)";
 
         toBase64(f).then(function(b64WithHeader) {
           var rawB64 = b64WithHeader.split(',')[1];
           reccePhotos.push({
             base64: rawB64,
             mimeType: "image/jpeg",
-            name: f.name || ('photo_' + Date.now() + '.jpg')
+            name: f.name || ('recon_' + Date.now() + '.jpg')
           });
           renderPhotoPreviews();
-          if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
+          if (countDisplay) countDisplay.innerText = reccePhotos.length + " image(s) attached";
         }).catch(function(err) {
-          console.error("Compression failed:", err);
+          console.error("Compression fault:", err);
         });
       });
     }
@@ -714,30 +1005,29 @@
           var confirmBox = document.getElementById("recce-confirm-checkbox");
 
           if (!confirmBox.checked) {
-            alert("Please tick the confirmation checkbox at the bottom before submitting.");
+            alert("Acknowledge verification checkbox before transmitting.");
             return;
           }
 
           if (!venueCoords && !venueGmapsVal) {
-            alert("Please set a venue location on the map before submitting.");
+            alert("Designate target venue on HUD map prior to submission.");
             return;
           }
 
           var confirmed = confirm(
-            "Are you ready to submit this Recce Report?\n\n" +
-            "• Venue: " + locationName + "\n" +
-            "• Officer: " + officer + "\n" +
-            "• Parking Pin: " + (parkingCoords ? "Set" : "Not set (Waze will point to venue)") + "\n" +
-            "• Photos: " + reccePhotos.length + "\n\n" +
-            "Tap OK to generate PDF & submit, or Cancel to keep editing."
+            "TRANSMIT RECON INTEL PACKAGE?\n\n" +
+            "• TARGET: " + locationName.toUpperCase() + "\n" +
+            "• CALLSIGN: " + officer.toUpperCase() + "\n" +
+            "• IMAGERY: " + reccePhotos.length + " attachments\n\n" +
+            "Execute PDF compilation and log to database?"
           );
 
           if (!confirmed) return;
 
           var btn = document.getElementById("recceSubmitBtn");
           btn.disabled = true;
-          btn.innerText = "Generating PDF & Uploading...";
-          btn.style.backgroundColor = "#ccc";
+          btn.innerText = "COMPILING PDF & TRANSMITTING...";
+          btn.style.backgroundColor = "#334155";
 
           var payload = {
             formType: "Recce",
@@ -761,26 +1051,26 @@
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
           }).then(function() {
-            alert("Submission sent successfully! Check Google Sheets.");
+            alert("Package uploaded & logged successfully.");
             btn.disabled = false;
-            btn.innerText = "Submit & Generate PDF";
-            btn.style.backgroundColor = "#af52de";
+            btn.innerText = "Generate & Submit Intel PDF";
+            btn.style.backgroundColor = "#6b21a8";
             document.getElementById("recceForm").reset();
             window.clearLocation();
             reccePhotos = [];
             var previewGrid = document.getElementById("photo-preview-grid");
             if (previewGrid) previewGrid.innerHTML = "";
             var countDisplay = document.getElementById("photo-count");
-            if (countDisplay) countDisplay.innerText = "0 photos attached";
+            if (countDisplay) countDisplay.innerText = "0 images attached";
             var dRecce = document.getElementById('recce-date');
             if (dRecce) dRecce.valueAsDate = new Date();
             window.goBack();
           }).catch(function(err) {
-            alert("Submission network error: " + err.message);
+            alert("Uplink failure: " + err.message);
             btn.disabled = false;
-            btn.innerText = "Submit & Generate PDF";
-            btn.style.backgroundColor = "#af52de";
-            document.getElementById('recce-status-message').innerText = "Upload error: " + err;
+            btn.innerText = "Generate & Submit Intel PDF";
+            btn.style.backgroundColor = "#6b21a8";
+            document.getElementById('recce-status-message').innerText = "Fault: " + err;
             document.getElementById('recce-status-message').className = "error";
           });
         };
@@ -792,17 +1082,17 @@
           event.preventDefault();
           var logConfirm = document.getElementById("log-confirm-checkbox");
           if (!logConfirm.checked) {
-            alert("Please tick the confirmation checkbox before submitting.");
+            alert("Confirm verification checkbox before submitting.");
             return;
           }
 
-          var confirmed = confirm("Are you sure you want to submit this log entry?");
+          var confirmed = confirm("Transmit log entry to central database?");
           if (!confirmed) return;
 
           var btn = document.getElementById("submitBtn");
           btn.disabled = true;
-          btn.innerText = "Uploading...";
-          btn.style.backgroundColor = "#ccc";
+          btn.innerText = "Transmitting...";
+          btn.style.backgroundColor = "#334155";
 
           var payload = {
             formType: "Log",
@@ -823,10 +1113,10 @@
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
           }).then(function() {
-            alert("Log entry sent successfully!");
+            alert("Entry received & recorded.");
             btn.disabled = false;
-            btn.innerText = "Submit Entry";
-            btn.style.backgroundColor = "#007aff";
+            btn.innerText = "Transmit Entry";
+            btn.style.backgroundColor = "#2563eb";
             document.getElementById("logForm").reset();
             var dLog = document.getElementById('date');
             if (dLog) dLog.valueAsDate = new Date();
@@ -835,9 +1125,9 @@
           }).catch(function(err) {
             alert("Log error: " + err.message);
             btn.disabled = false;
-            btn.innerText = "Submit Entry";
-            btn.style.backgroundColor = "#007aff";
-            document.getElementById('status-message').innerText = "Error sending data.";
+            btn.innerText = "Transmit Entry";
+            btn.style.backgroundColor = "#2563eb";
+            document.getElementById('status-message').innerText = "Error transmitting.";
             document.getElementById('status-message').className = "error";
           });
         };
