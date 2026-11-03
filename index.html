@@ -1,3 +1,17 @@
+Here is the updated single-file HTML code.
+
+### Key Additions & Modifications
+
+1. **Language Segmented Control:** Placed directly at the top of the `#staff-modal` editor (`English | Русский | עברית`).
+2. **Direction & Alignment Management:** Automatically switches the modal card between `dir="ltr"` and `dir="rtl"` when Hebrew is selected (with mirrored right-aligned inputs and flipped cancel/submit actions).
+3. **Data Translation Engine:** Localizes all labels, placeholders, photo buttons, verification check notes, and action button text across English, Russian, and Hebrew.
+4. **Data Integrity Maintained:**
+* Defaults back to **English** every time the modal is opened.
+* Preserves underlying English data formatting: if the allergy input retains default or empty states, it posts standard values like `"None"` so your Google Sheet remains clean and standardized in English.
+
+
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -391,6 +405,7 @@
       box-shadow: 0 20px 40px rgba(0,0,0,0.6);
       position: relative;
       margin: auto 0;
+      transition: direction 0.2s ease;
     }
     .modal-header-sticky {
       display: flex;
@@ -407,6 +422,61 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 16px 20px 24px 20px;
+    }
+
+    /* Language Switcher Bar inside Modal */
+    .lang-switcher-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 12px;
+      margin-bottom: 16px;
+    }
+    .lang-selector-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.4px;
+    }
+    .lang-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .lang-btn {
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-appearance: none;
+      transition: all 0.15s ease;
+    }
+    .lang-btn.active {
+      background: #0d9488;
+      border-color: #14b8a6;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(13, 148, 136, 0.35);
+    }
+
+    /* RTL adaptations when Hebrew is chosen */
+    .modal-card[dir="rtl"] {
+      text-align: right;
+    }
+    .modal-card[dir="rtl"] .modal-header-sticky {
+      flex-direction: row-reverse;
+    }
+    .modal-card[dir="rtl"] .lang-switcher-bar {
+      flex-direction: row-reverse;
+    }
+    .modal-card[dir="rtl"] .confirm-label {
+      flex-direction: row-reverse;
+      text-align: right;
     }
 
     .personnel-photo-box {
@@ -530,29 +600,40 @@
     </div>
   </div>
 
-  <!-- 4. MODAL POPUP: EDIT / FILL ROW -->
+  <!-- 4. MODAL POPUP: EDIT / FILL ROW (WITH MULTI-LANGUAGE SWITCHER) -->
   <div id="staff-modal" class="modal-overlay">
-    <div class="modal-card">
+    <div class="modal-card" id="staff-modal-card" dir="ltr">
       <div class="modal-header-sticky">
         <h3 id="modal-heading" style="margin: 0; font-size: 17px; color: #fff;">Staff Record</h3>
-        <button type="button" class="back-btn" style="margin: 0; padding: 8px 14px; background: #3b424e; color: #fff;" onclick="closeStaffModal()">✕ Cancel</button>
+        <button type="button" class="back-btn" id="modal-cancel-header" style="margin: 0; padding: 8px 14px; background: #3b424e; color: #fff;" onclick="closeStaffModal()">✕ Cancel</button>
       </div>
 
       <div class="modal-scroll-body">
+        
+        <!-- Language Switcher Bar -->
+        <div class="lang-switcher-bar">
+          <span class="lang-selector-label" id="lbl-language-title">Form Language:</span>
+          <div class="lang-btn-group">
+            <button type="button" class="lang-btn active" id="btn-lang-en" onclick="setStaffFormLanguage('en')">EN</button>
+            <button type="button" class="lang-btn" id="btn-lang-ru" onclick="setStaffFormLanguage('ru')">Русский</button>
+            <button type="button" class="lang-btn" id="btn-lang-he" onclick="setStaffFormLanguage('he')">עברית</button>
+          </div>
+        </div>
+
         <form id="personnelForm">
           <input type="hidden" id="p-row-index" value="">
           <input type="hidden" id="p-existing-photo" value="">
 
           <!-- Photo Section -->
-          <label>Staff Portrait Photo</label>
+          <label id="lbl-p-photo">Staff Portrait Photo</label>
           <div class="personnel-photo-box">
             <div class="personnel-preview" id="personnel-preview-box">
               <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
               <img id="personnel-img-tag" style="display: none;" alt="Preview" />
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-              <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
-              <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
+              <button type="button" id="btn-p-cam" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
+              <button type="button" id="btn-p-gal" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
               <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear / Replace</button>
             </div>
           </div>
@@ -560,31 +641,31 @@
           <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
           <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
 
-          <label for="p-name">Name</label>
+          <label for="p-name" id="lbl-p-name">Name</label>
           <input type="text" id="p-name" placeholder="e.g. Evgeni Boguslavsky" required>
 
-          <label for="p-nickname">Assigned Nickname / Callsign (Optional)</label>
+          <label for="p-nickname" id="lbl-p-nickname">Assigned Nickname / Callsign (Optional)</label>
           <input type="text" id="p-nickname" placeholder="e.g. Maverick / Bogus">
 
-          <label for="p-position">Job Title / Position</label>
+          <label for="p-position" id="lbl-p-position">Job Title / Position</label>
           <input type="text" id="p-position" placeholder="e.g. Maintenance Engineer" required>
 
-          <label for="p-startdate">Start Date</label>
+          <label for="p-startdate" id="lbl-p-startdate">Start Date</label>
           <input type="date" id="p-startdate" required>
 
-          <label for="p-phone">Phone Number</label>
+          <label for="p-phone" id="lbl-p-phone">Phone Number</label>
           <input type="tel" id="p-phone" placeholder="e.g. 050-581-8826" required>
 
-          <label for="p-emergency">Emergency Contact Information</label>
+          <label for="p-emergency" id="lbl-p-emergency">Emergency Contact Information</label>
           <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540" required>
 
-          <label for="p-allergies">Allergies</label>
+          <label for="p-allergies" id="lbl-p-allergies">Allergies</label>
           <input type="text" id="p-allergies" placeholder="e.g. None / Parsley" value="None" required>
 
           <div class="confirm-box">
             <label class="confirm-label">
               <input type="checkbox" id="personnel-confirm-checkbox" required>
-              <span>I confirm this staff profile information is verified and accurate.</span>
+              <span id="lbl-p-confirm">I confirm this staff profile information is verified and accurate.</span>
             </label>
           </div>
 
@@ -745,6 +826,7 @@
     var reccePhotos = [];
     var personnelPhotoBase64 = "";
     var currentLoadedRoster = [];
+    var currentStaffRowContext = null;
 
     var recceMap = null;
     var currentPinMode = 'venue';
@@ -752,6 +834,144 @@
     var parkingCoords = null;
     var venueMarker = null;
     var parkingMarker = null;
+
+    /* Multi-Language Form Dictionaries */
+    var STAFF_I18N = {
+      en: {
+        dir: 'ltr',
+        langTitle: 'Form Language:',
+        assignTitle: 'Assign New Staff to Row ',
+        editTitle: 'Edit Record: ',
+        cancelBtn: '✕ Cancel',
+        photoLabel: 'Staff Portrait Photo',
+        takePhoto: '📷 Take Photo (Camera)',
+        uploadPhoto: '🖼️ Upload from Device',
+        clearPhoto: '✕ Clear / Replace',
+        nameLabel: 'Name',
+        namePlaceholder: 'e.g. Evgeni Boguslavsky',
+        nicknameLabel: 'Assigned Nickname / Callsign (Optional)',
+        nicknamePlaceholder: 'e.g. Maverick / Bogus',
+        positionLabel: 'Job Title / Position',
+        positionPlaceholder: 'e.g. Maintenance Engineer',
+        startdateLabel: 'Start Date',
+        phoneLabel: 'Phone Number',
+        phonePlaceholder: 'e.g. 050-581-8826',
+        emergencyLabel: 'Emergency Contact Information',
+        emergencyPlaceholder: 'e.g. Olga (Manager): 052-440-6540',
+        allergiesLabel: 'Allergies',
+        allergiesPlaceholder: 'e.g. None / Parsley',
+        confirmText: 'I confirm this staff profile information is verified and accurate.',
+        submitBtn: 'Save to Row'
+      },
+      ru: {
+        dir: 'ltr',
+        langTitle: 'Язык формы:',
+        assignTitle: 'Назначить сотрудника на строку ',
+        editTitle: 'Редактировать запись: ',
+        cancelBtn: '✕ Отмена',
+        photoLabel: 'Фотография сотрудника',
+        takePhoto: '📷 Сделать снимок (Камера)',
+        uploadPhoto: '🖼️ Загрузить из галереи',
+        clearPhoto: '✕ Очистить / Заменить',
+        nameLabel: 'ФИО',
+        namePlaceholder: 'напр. Евгений Богуславский',
+        nicknameLabel: 'Позывной / Никнейм (Опционально)',
+        nicknamePlaceholder: 'напр. Маверик / Богус',
+        positionLabel: 'Должность / Профиль',
+        positionPlaceholder: 'напр. Инженер по обслуживанию',
+        startdateLabel: 'Дата начала работы',
+        phoneLabel: 'Номер телефона',
+        phonePlaceholder: 'напр. 050-581-8826',
+        emergencyLabel: 'Контакт для экстренной связи',
+        emergencyPlaceholder: 'напр. Ольга (Менеджер): 052-440-6540',
+        allergiesLabel: 'Аллергии / Противопоказания',
+        allergiesPlaceholder: 'напр. Нет / Петрушка',
+        confirmText: 'Я подтверждаю, что указанные данные сотрудника верны и проверены.',
+        submitBtn: 'Сохранить данные'
+      },
+      he: {
+        dir: 'rtl',
+        langTitle: 'שפת הטופס:',
+        assignTitle: 'הקצאת איש צוות חדש לשורה ',
+        editTitle: 'עריכת רשומת איש צוות: ',
+        cancelBtn: '✕ ביטול',
+        photoLabel: 'תמונת פרופיל של העובד',
+        takePhoto: '📷 צילום תמונה (מצלמה)',
+        uploadPhoto: '🖼️ העלאה מהמכשיר',
+        clearPhoto: '✕ נקה / החלף תמונה',
+        nameLabel: 'שם מלא',
+        namePlaceholder: 'לדוגמה: יבגני בוגוסלבסקי',
+        nicknameLabel: 'כינוי / אות קריאה מבצעי (אופציונלי)',
+        nicknamePlaceholder: 'לדוגמה: מאבריק / בוגוס',
+        positionLabel: 'תפקיד / הגדרת משרה',
+        positionPlaceholder: 'לדוגמה: מהנדס אחזקה',
+        startdateLabel: 'תאריך תחילת עבודה',
+        phoneLabel: 'מספר טלפון',
+        phonePlaceholder: 'לדוגמה: 050-581-8826',
+        emergencyLabel: 'איש קשר לחירום',
+        emergencyPlaceholder: 'לדוגמה: אולגה (מנהלת): 052-440-6540',
+        allergiesLabel: 'אלרגיות / רגישויות',
+        allergiesPlaceholder: 'לדוגמה: ללא / פטרוזיליה',
+        confirmText: 'אני מאשר בזאת כי פרטי איש הצוות אומתו ומדויקים.',
+        submitBtn: 'שמור לשורה'
+      }
+    };
+
+    window.setStaffFormLanguage = function(lang) {
+      var dict = STAFF_I18N[lang] || STAFF_I18N.en;
+      var modalCard = document.getElementById('staff-modal-card');
+      if (modalCard) modalCard.setAttribute('dir', dict.dir);
+
+      // Active state update on pill buttons
+      ['en', 'ru', 'he'].forEach(function(l) {
+        var b = document.getElementById('btn-lang-' + l);
+        if (b) {
+          if (l === lang) b.classList.add('active');
+          else b.classList.remove('active');
+        }
+      });
+
+      // Update text nodes
+      document.getElementById('lbl-language-title').innerText = dict.langTitle;
+      document.getElementById('modal-cancel-header').innerText = dict.cancelBtn;
+      document.getElementById('lbl-p-photo').innerText = dict.photoLabel;
+      document.getElementById('btn-p-cam').innerText = dict.takePhoto;
+      document.getElementById('btn-p-gal').innerText = dict.uploadPhoto;
+      document.getElementById('btn-remove-photo').innerText = dict.clearPhoto;
+
+      document.getElementById('lbl-p-name').innerText = dict.nameLabel;
+      document.getElementById('p-name').placeholder = dict.namePlaceholder;
+
+      document.getElementById('lbl-p-nickname').innerText = dict.nicknameLabel;
+      document.getElementById('p-nickname').placeholder = dict.nicknamePlaceholder;
+
+      document.getElementById('lbl-p-position').innerText = dict.positionLabel;
+      document.getElementById('p-position').placeholder = dict.positionPlaceholder;
+
+      document.getElementById('lbl-p-startdate').innerText = dict.startdateLabel;
+
+      document.getElementById('lbl-p-phone').innerText = dict.phoneLabel;
+      document.getElementById('p-phone').placeholder = dict.phonePlaceholder;
+
+      document.getElementById('lbl-p-emergency').innerText = dict.emergencyLabel;
+      document.getElementById('p-emergency').placeholder = dict.emergencyPlaceholder;
+
+      document.getElementById('lbl-p-allergies').innerText = dict.allergiesLabel;
+      document.getElementById('p-allergies').placeholder = dict.allergiesPlaceholder;
+
+      document.getElementById('lbl-p-confirm').innerText = dict.confirmText;
+      document.getElementById('personnelSubmitBtn').innerText = dict.submitBtn;
+
+      // Update heading dynamically
+      if (currentStaffRowContext) {
+        var heading = document.getElementById('modal-heading');
+        if (currentStaffRowContext.isEmpty) {
+          heading.innerText = dict.assignTitle + currentStaffRowContext.rowIndex;
+        } else {
+          heading.innerText = dict.editTitle + (currentStaffRowContext.name || ("Row " + currentStaffRowContext.rowIndex));
+        }
+      }
+    };
 
     window.hideAllViews = function() {
       document.getElementById('dashboard-view').style.display = 'none';
@@ -807,7 +1027,7 @@
       if (s2) s2.innerText = "";
     };
 
-    /* Nickname Bubble Touch Handler (Assigned staff photos only) */
+    /* Nickname Bubble Touch Handler */
     window.showNicknameBubble = function(event, element) {
       event.stopPropagation();
 
@@ -833,7 +1053,7 @@
       });
     });
 
-    /* Live Staff Table Fetch & Click-to-Select Implementation */
+    /* Live Staff Table Fetch */
     function loadStaffRoster() {
       var statusDiv = document.getElementById('roster-loading-status');
       var tableWrapper = document.getElementById('roster-table-wrapper');
@@ -912,6 +1132,7 @@
 
     /* Modal Form Handlers */
     function openStaffModalForRow(row) {
+      currentStaffRowContext = row;
       var modal = document.getElementById('staff-modal');
       modal.style.display = 'flex';
 
@@ -921,9 +1142,8 @@
       document.getElementById('p-row-index').value = row.rowIndex;
       document.getElementById('p-existing-photo').value = row.photoUrl ? ('=IMAGE("' + row.photoUrl + '", 1)') : '';
 
-      document.getElementById('modal-heading').innerText = row.isEmpty 
-        ? "Assign New Staff to Row " + row.rowIndex
-        : "Edit Record: " + (row.name || "Row " + row.rowIndex);
+      // Reset Language explicitly to English on open
+      window.setStaffFormLanguage('en');
 
       document.getElementById('p-name').value = row.name || '';
       document.getElementById('p-nickname').value = row.nickname || '';
@@ -973,6 +1193,7 @@
     window.closeStaffModal = function() {
       document.getElementById('staff-modal').style.display = 'none';
       personnelPhotoBase64 = "";
+      currentStaffRowContext = null;
     };
 
     /* Personnel Photo Functions */
@@ -1503,6 +1724,12 @@
           btn.innerText = "Updating Row " + targetRowIndex + "...";
           btn.style.backgroundColor = "#475569";
 
+          // Enforce English defaults if empty or standard default entered
+          var allergiesVal = document.getElementById("p-allergies").value.trim();
+          if (!allergiesVal || allergiesVal === "Нет" || allergiesVal === "ללא") {
+            allergiesVal = "None";
+          }
+
           var payload = {
             action: "saveStaffProfile",
             rowIndex: targetRowIndex,
@@ -1514,7 +1741,7 @@
             startDate: document.getElementById("p-startdate").value,
             phone: document.getElementById("p-phone").value.trim(),
             emergency: document.getElementById("p-emergency").value.trim(),
-            allergies: document.getElementById("p-allergies").value.trim()
+            allergies: allergiesVal
           };
 
           fetch(webAppUrl, {
@@ -1682,3 +1909,5 @@
   </script>
 </body>
 </html>
+
+```
