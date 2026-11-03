@@ -506,8 +506,8 @@
 
     function updateDisplay() {
       const display = document.getElementById('coords-display');
-      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat},${venueCoords.lng}` : 'Not set (Tap map or search)'}<br>` +
-                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat},${parkingCoords.lng}` : 'Not set (Switch to Parking, then tap map)'}`;
+      display.innerHTML = `📍 Venue: ${venueCoords ? `${venueCoords.lat}, ${venueCoords.lng}` : 'Not set (Tap map or search)'}<br>` +
+                          `🅿️ Parking: ${parkingCoords ? `${parkingCoords.lat}, ${parkingCoords.lng}` : 'Not set (Switch to Parking, then tap map)'}`;
     }
 
     function clearLocation() {
@@ -642,3 +642,105 @@
       const btn = document.getElementById("recceSubmitBtn");
       btn.disabled = true;
       btn.innerText = "Generating PDF & Uploading...";
+      btn.style.backgroundColor = "#ccc";
+
+      const payload = {
+        formType: "Recce",
+        locationName: locationName,
+        officer: officer,
+        date: document.getElementById("recce-date").value,
+        description: desc,
+        googleMapsUrl: venueGmapsVal,
+        parkingGoogleMapsUrl: document.getElementById("recce-parking-gmaps").value.trim(),
+        wazeUrl: document.getElementById("recce-waze").value.trim(),
+        lat: venueCoords ? venueCoords.lat : "0",
+        lng: venueCoords ? venueCoords.lng : "0",
+        parkingLat: parkingCoords ? parkingCoords.lat : "",
+        parkingLng: parkingCoords ? parkingCoords.lng : "",
+        photos: reccePhotos
+      };
+
+      fetch(webAppUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        alert("Submission sent successfully! Check Google Sheets.");
+        btn.disabled = false;
+        btn.innerText = "Submit & Generate PDF";
+        btn.style.backgroundColor = "#af52de";
+        document.getElementById("recceForm").reset();
+        clearLocation();
+        reccePhotos = [];
+        if (previewGrid) previewGrid.innerHTML = "";
+        countDisplay.innerText = "0 photos attached";
+        document.getElementById('recce-date').valueAsDate = new Date();
+        goBack();
+      }).catch(err => {
+        alert("Submission network error: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "Submit & Generate PDF";
+        btn.style.backgroundColor = "#af52de";
+        document.getElementById('recce-status-message').innerText = "Upload error: " + err;
+        document.getElementById('recce-status-message').className = "error";
+      });
+    });
+
+    // Standard Log Submit
+    document.getElementById("logForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const logConfirm = document.getElementById("log-confirm-checkbox");
+      if (!logConfirm.checked) {
+        alert("Please tick the confirmation checkbox before submitting.");
+        return;
+      }
+
+      const confirmed = confirm("Are you sure you want to submit this log entry?");
+      if (!confirmed) return;
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.innerText = "Uploading...";
+      btn.style.backgroundColor = "#ccc";
+
+      const payload = {
+        formType: "Log",
+        column2: document.getElementById("name").value,
+        column3: document.getElementById("date").value,
+        column4: document.getElementById("type").value,
+        column5: document.getElementById("remarks").value,
+        column6: document.getElementById("status").value,
+        column7: document.getElementById("evidence").value,
+        imageBase64: base64Image,
+        fileName: fileName,
+        mimeType: mimeType
+      };
+
+      fetch(webAppUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        alert("Log entry sent successfully!");
+        btn.disabled = false;
+        btn.innerText = "Submit Entry";
+        btn.style.backgroundColor = "#007aff";
+        document.getElementById("logForm").reset();
+        document.getElementById('date').valueAsDate = new Date();
+        base64Image = ""; fileName = ""; mimeType = "";
+        goBack();
+      }).catch(err => {
+        alert("Log error: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "Submit Entry";
+        btn.style.backgroundColor = "#007aff";
+        document.getElementById('status-message').innerText = "Error sending data.";
+        document.getElementById('status-message').className = "error";
+      });
+    });
+  </script>
+</body>
+</html>
