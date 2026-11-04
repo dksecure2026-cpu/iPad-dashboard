@@ -4,6 +4,7 @@ var personnelSheetUrl = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HE
 var base64Image = "", fileName = "", mimeType = "";
 var reccePhotos = [];
 var personnelPhotoBase64 = "";
+var staffRosterCache = [];
 
 var recceMap = null;
 var currentPinMode = 'venue';
@@ -61,6 +62,7 @@ window.openOpenItems = function() {
 window.openPersonnel = function() {
   window.hideAllViews();
   document.getElementById('personnel-view').style.display = 'block';
+  loadStaffRoster();
 };
 
 window.openGoogleSheet = function() {
@@ -92,10 +94,146 @@ window.goBack = function() {
   if (s1) s1.innerText = "";
   var s2 = document.getElementById('recce-status-message');
   if (s2) s2.innerText = "";
-  var s3 = document.getElementById('personnel-status-message');
-  if (s3) s3.innerText = "";
 };
 
+/* ==========================================================================
+   STAFF ROSTER: DIRECTORY, TOUCH POPUPS & MODAL
+   ========================================================================== */
+function loadStaffRoster() {
+  var statusDiv = document.getElementById('staff-status');
+  var tbody = document.getElementById('staff-roster-body');
+  statusDiv.innerText = "Syncing staff roster from Google Sheet...";
+
+  var scriptId = 'jsonp-staff-roster';
+  var oldScript = document.getElementById(scriptId);
+  if (oldScript) oldScript.remove();
+
+  window.handleStaffRosterCallback = function(response) {
+    if (!response || !response.roster || response.roster.length === 0) {
+      statusDiv.innerText = "No staff records found.";
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No personnel records found.</td></tr>';
+      return;
+    }
+
+    staffRosterCache = response.roster.filter(function(r) { return !r.isEmpty; });
+    statusDiv.innerText = "Active Team Members (" + staffRosterCache.length + "):";
+    tbody.innerHTML = "";
+
+    staffRosterCache.forEach(function(member) {
+      var tr = document.createElement('tr');
+
+      var initials = (member.name || "?").substring(0, 2).toUpperCase();
+      var avatarHtml = member.photoUrl 
+        ? '<img src="' + member.photoUrl + '" class="staff-avatar-img" alt="' + escapeHtml(member.name) + '" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div class=\\\'staff-avatar-placeholder\\\'>' + initials + '</div>\';">'
+        : '<div class="staff-avatar-placeholder">' + initials + '</div>';
+
+      var nicknamePopupMsg = member.nickname 
+        ? "Callsign: " + member.nickname 
+        : (member.name + " (No callsign set)");
+
+      var nicknameBadge = member.nickname 
+        ? '<div class="nickname-badge">🏷️ ' + escapeHtml(member.nickname) + '</div>' 
+        : '';
+
+      tr.innerHTML = 
+        '<td>' +
+          '<div class="staff-avatar-wrapper" onclick="alert(\'' + escapeHtml(nicknamePopupMsg).replace(/'/g, "\\'") + '\')" title="Tap to view Callsign">' +
+            avatarHtml +
+          '</div>' +
+        '</td>' +
+        '<td>' +
+          '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>' +
+          nicknameBadge +
+        '</td>' +
+        '<td>' + escapeHtml(member.position || 'Staff') + '</td>' +
+        '<td>' +
+          (member.phone ? '<a href="tel:' + member.phone + '" style="color:#60a5fa; text-decoration:none;">📞 ' + escapeHtml(member.phone) + '</a>' : '—') +
+        '</td>' +
+        '<td style="font-size: 12px; color: #cbd5e1;">' + escapeHtml(member.emergency || '—') + '</td>' +
+        '<td style="text-align: center;">' +
+          '<button type="button" class="btn-edit-staff" onclick="openEditStaffModal(' + member.rowIndex + ')">Edit</button>' +
+        '</td>';
+
+      tbody.appendChild(tr);
+    });
+  };
+
+  var script = document.createElement('script');
+  script.id = scriptId;
+  script.src = webAppUrl + '?action=getStaffRoster&callback=handleStaffRosterCallback&t=' + Date.now();
+  document.body.appendChild(script);
+}
+
+window.openAddStaffModal = function() {
+  document.getElementById('modal-p-row').value = "";
+  document.getElementById('modal-p-existing-photo').value = "";
+  document.getElementById('modalStaffForm').reset();
+  window.clearModalPhoto();
+  document.getElementById('staff-modal-title').innerText = "Add Personnel Record";
+  document.getElementById('staff-modal-overlay').style.display = "flex";
+};
+
+window.openEditStaffModal = function(rowIndex) {
+  var member = staffRosterCache.find(function(m) { return m.rowIndex === rowIndex; });
+  if (!member) return;
+
+  document.getElementById('modal-p-row').value = member.rowIndex;
+  document.getElementById('modal-p-existing-photo').value = member.photoUrl ? ('=IMAGE("' + member.photoUrl + '", 1)') : "";
+  document.getElementById('modal-p-name').value = member.name || "";
+  document.getElementById('modal-p-nickname').value = member.nickname || "";
+  document.getElementById('modal-p-position').value = member.position || "";
+  document.getElementById('modal-p-startdate').value = member.startDate || "";
+  document.getElementById('modal-p-phone').value = member.phone || "";
+  document.getElementById('modal-p-emergency').value = member.emergency || "";
+  document.getElementById('modal-p-allergies').value = member.allergies || "None";
+
+  personnelPhotoBase64 = "";
+  if (member.photoUrl) {
+    var img = document.getElementById('modal-img-tag');
+    img.src = member.photoUrl;
+    img.style.display = "block";
+    document.getElementById('modal-placeholder').style.display = "none";
+    document.getElementById('btn-modal-clear-photo').style.display = "block";
+  } else {
+    window.clearModalPhoto();
+  }
+
+  document.getElementById('staff-modal-title').innerText = "Edit: " + member.name;
+  document.getElementById('staff-modal-overlay').style.display = "flex";
+};
+
+window.closeStaffModal = function() {
+  document.getElementById('staff-modal-overlay').style.display = "none";
+};
+
+window.closeStaffModalOnBackdrop = function(e) {
+  if (e.target.id === 'staff-modal-overlay') {
+    window.closeStaffModal();
+  }
+};
+
+window.triggerModalCamera = function() {
+  var el = document.getElementById('modal-camera-input');
+  if (el) el.click();
+};
+
+window.triggerModalGallery = function() {
+  var el = document.getElementById('modal-gallery-input');
+  if (el) el.click();
+};
+
+window.clearModalPhoto = function() {
+  personnelPhotoBase64 = "";
+  document.getElementById('modal-img-tag').style.display = "none";
+  document.getElementById('modal-img-tag').src = "";
+  document.getElementById('modal-placeholder').style.display = "block";
+  document.getElementById('btn-modal-clear-photo').style.display = "none";
+  document.getElementById('modal-p-existing-photo').value = "";
+};
+
+/* ==========================================================================
+   OPEN ACTION ITEMS HANDLERS
+   ========================================================================== */
 function loadOpenItems() {
   var statusDiv = document.getElementById('open-items-status');
   var listDiv = document.getElementById('open-items-list');
@@ -215,7 +353,6 @@ window.addLogUpdate = function(rowIndex) {
         '<div class="update-content">' + escapeHtml(payload.text) + '</div>';
       list.appendChild(bubble);
     }
-
     if (input) input.value = '';
     if (btn) {
       btn.disabled = false;
@@ -261,38 +398,9 @@ window.closeLogItem = function(rowIndex) {
   });
 };
 
-window.triggerPersonnelCamera = function() {
-  var el = document.getElementById('personnel-camera-input');
-  if (el) el.click();
-};
-
-window.triggerPersonnelGallery = function() {
-  var el = document.getElementById('personnel-gallery-input');
-  if (el) el.click();
-};
-
-window.removePersonnelPhoto = function() {
-  personnelPhotoBase64 = "";
-  document.getElementById('personnel-img-tag').style.display = "none";
-  document.getElementById('personnel-img-tag').src = "";
-  document.getElementById('personnel-placeholder').style.display = "block";
-  document.getElementById('btn-remove-photo').style.display = "none";
-};
-
-function handlePersonnelImage(file) {
-  if (!file) return;
-  toBase64(file).then(function(b64) {
-    personnelPhotoBase64 = b64;
-    var img = document.getElementById('personnel-img-tag');
-    img.src = b64;
-    img.style.display = "block";
-    document.getElementById('personnel-placeholder').style.display = "none";
-    document.getElementById('btn-remove-photo').style.display = "block";
-  }).catch(function(err) {
-    alert("Could not process photo: " + err);
-  });
-}
-
+/* ==========================================================================
+   RECCE LOGIC & MAP HANDLERS
+   ========================================================================== */
 window.triggerCamera = function() {
   var el = document.getElementById('recce-camera-input');
   if (el) el.click();
@@ -379,7 +487,6 @@ function setVenuePin(lat, lng) {
   }
 
   document.getElementById('recce-venue-gmaps').value = 'https://www.google.com/maps?q=' + venueCoords.lat + ',' + venueCoords.lng;
-
   if (!parkingCoords) {
     document.getElementById('recce-waze').value = 'https://waze.com/ul?ll=' + venueCoords.lat + ',' + venueCoords.lng + '&navigate=yes';
   }
@@ -421,15 +528,12 @@ function updateDisplay() {
 window.clearLocation = function() {
   venueCoords = null;
   parkingCoords = null;
-
   if (venueMarker && recceMap) { recceMap.removeLayer(venueMarker); venueMarker = null; }
   if (parkingMarker && recceMap) { recceMap.removeLayer(parkingMarker); parkingMarker = null; }
-
   document.getElementById('coords-display').innerHTML = '📍 Venue: Not set (Tap map or search)<br>🅿️ Parking: Not set (Switch mode, then tap map)';
   document.getElementById('recce-venue-gmaps').value = "";
   document.getElementById('recce-parking-gmaps').value = "";
   document.getElementById('recce-waze').value = "";
-
   var searchBox = document.getElementById('map-search-input');
   if (searchBox) searchBox.value = "";
   window.setPinMode('venue');
@@ -450,7 +554,6 @@ window.useCurrentLocation = function() {
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
       if (recceMap) recceMap.setView([lat, lng], 16);
-
       if (currentPinMode === 'venue') {
         setVenuePin(lat, lng);
       } else {
@@ -572,7 +675,7 @@ function renderPhotoPreviews() {
     removeBtn.style.height = '20px';
     removeBtn.style.fontSize = '14px';
     removeBtn.style.fontWeight = 'bold';
-    removeBtn.lineHeight = '18px';
+    removeBtn.style.lineHeight = '18px';
     removeBtn.style.padding = '0';
     removeBtn.style.cursor = 'pointer';
 
@@ -615,13 +718,14 @@ function handleIncomingFiles(fileList) {
   });
 }
 
+/* ==========================================================================
+   INITIALIZATION & FORM LISTENERS
+   ========================================================================== */
 window.onload = function() {
   var d1 = document.getElementById('date');
   if (d1) d1.valueAsDate = new Date();
   var d2 = document.getElementById('recce-date');
   if (d2) d2.valueAsDate = new Date();
-  var d3 = document.getElementById('p-startdate');
-  if (d3) d3.valueAsDate = new Date();
 
   var singlePhoto = document.getElementById('photo-upload');
   if (singlePhoto) {
@@ -637,26 +741,87 @@ window.onload = function() {
     };
   }
 
-  var pCamera = document.getElementById('personnel-camera-input');
-  if (pCamera) {
-    pCamera.onchange = function(e) {
+  // Modal image handlers
+  function handleModalImage(file) {
+    if (!file) return;
+    toBase64(file).then(function(b64) {
+      personnelPhotoBase64 = b64;
+      var img = document.getElementById('modal-img-tag');
+      img.src = b64;
+      img.style.display = "block";
+      document.getElementById('modal-placeholder').style.display = "none";
+      document.getElementById('btn-modal-clear-photo').style.display = "block";
+    }).catch(function(err) {
+      alert("Could not process photo: " + err);
+    });
+  }
+
+  var mCam = document.getElementById('modal-camera-input');
+  if (mCam) {
+    mCam.onchange = function(e) {
       if (e.target.files.length > 0) {
-        handlePersonnelImage(e.target.files[0]);
-        pCamera.value = "";
+        handleModalImage(e.target.files[0]);
+        mCam.value = "";
       }
     };
   }
 
-  var pGallery = document.getElementById('personnel-gallery-input');
-  if (pGallery) {
-    pGallery.onchange = function(e) {
+  var mGal = document.getElementById('modal-gallery-input');
+  if (mGal) {
+    mGal.onchange = function(e) {
       if (e.target.files.length > 0) {
-        handlePersonnelImage(e.target.files[0]);
-        pGallery.value = "";
+        handleModalImage(e.target.files[0]);
+        mGal.value = "";
       }
     };
   }
 
+  // Modal Form Submission
+  var modalForm = document.getElementById("modalStaffForm");
+  if (modalForm) {
+    modalForm.onsubmit = function(e) {
+      e.preventDefault();
+      var btn = document.getElementById("modalSubmitBtn");
+      btn.disabled = true;
+      btn.innerText = "Saving to Roster...";
+      btn.style.backgroundColor = "#475569";
+
+      var payload = {
+        action: "saveStaffProfile",
+        rowIndex: document.getElementById("modal-p-row").value || "",
+        existingPhotoFormula: document.getElementById("modal-p-existing-photo").value || "",
+        photoBase64: personnelPhotoBase64,
+        name: document.getElementById("modal-p-name").value.trim(),
+        nickname: document.getElementById("modal-p-nickname").value.trim(),
+        jobTitle: document.getElementById("modal-p-position").value.trim(),
+        startDate: document.getElementById("modal-p-startdate").value,
+        phone: document.getElementById("modal-p-phone").value.trim(),
+        emergency: document.getElementById("modal-p-emergency").value.trim(),
+        allergies: document.getElementById("modal-p-allergies").value.trim()
+      };
+
+      fetch(webAppUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      }).then(function() {
+        alert("Staff profile saved successfully.");
+        btn.disabled = false;
+        btn.innerText = "Save Staff Profile";
+        btn.style.backgroundColor = "#0d9488";
+        window.closeStaffModal();
+        loadStaffRoster();
+      }).catch(function(err) {
+        alert("Upload error: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "Save Staff Profile";
+        btn.style.backgroundColor = "#0d9488";
+      });
+    };
+  }
+
+  // Recce Listeners
   var cameraInput = document.getElementById('recce-camera-input');
   if (cameraInput) {
     cameraInput.onchange = function(e) {
@@ -687,58 +852,7 @@ window.onload = function() {
     };
   }
 
-  var pForm = document.getElementById("personnelForm");
-  if (pForm) {
-    pForm.onsubmit = function(e) {
-      e.preventDefault();
-      var confirmBox = document.getElementById("personnel-confirm-checkbox");
-      if (!confirmBox.checked) {
-        alert("Please check the confirmation box.");
-        return;
-      }
-
-      var btn = document.getElementById("personnelSubmitBtn");
-      btn.disabled = true;
-      btn.innerText = "Transmitting to Roster...";
-      btn.style.backgroundColor = "#475569";
-
-      var payload = {
-        action: "addPersonnel",
-        photoBase64: personnelPhotoBase64,
-        name: document.getElementById("p-name").value.trim(),
-        jobTitle: document.getElementById("p-position").value.trim(),
-        startDate: document.getElementById("p-startdate").value,
-        phone: document.getElementById("p-phone").value.trim(),
-        emergency: document.getElementById("p-emergency").value.trim(),
-        allergies: document.getElementById("p-allergies").value.trim()
-      };
-
-      fetch(webAppUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify(payload)
-      }).then(function() {
-        alert("Personnel entry saved successfully.");
-        btn.disabled = false;
-        btn.innerText = "Save to Personnel Sheet";
-        btn.style.backgroundColor = "#0d9488";
-        pForm.reset();
-        window.removePersonnelPhoto();
-        var dReset = document.getElementById('p-startdate');
-        if (dReset) dReset.valueAsDate = new Date();
-        window.goBack();
-      }).catch(function(err) {
-        alert("Upload failed: " + err.message);
-        btn.disabled = false;
-        btn.innerText = "Save to Personnel Sheet";
-        btn.style.backgroundColor = "#0d9488";
-        document.getElementById('personnel-status-message').innerText = "Upload error: " + err;
-        document.getElementById('personnel-status-message').className = "error";
-      });
-    };
-  }
-
+  // Recce Form Submission
   var recceForm = document.getElementById("recceForm");
   if (recceForm) {
     recceForm.onsubmit = function(e) {
@@ -821,6 +935,7 @@ window.onload = function() {
     };
   }
 
+  // Security Log Submission
   var logForm = document.getElementById("logForm");
   if (logForm) {
     logForm.onsubmit = function(event) {
