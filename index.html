@@ -6,7 +6,6 @@
   <title>WHITEBANNER - Operations Dashboard</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- External stylesheet -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -70,63 +69,40 @@
     <div id="open-items-list"></div>
   </div>
 
-  <!-- 3. PERSONNEL ROSTER VIEW -->
+  <!-- 3. PERSONNEL ROSTER VIEW (TABLE WITH AVATARS) -->
   <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-      <button type="button" class="back-btn" style="background-color: #0f766e; color: #fff; border: none;" onclick="openGoogleSheet()">📊 Open Google Sheet</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #0f766e; color: #fff; border: none;" onclick="openGoogleSheet()">📊 Google Sheet</button>
+        <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #2563eb; color: #fff; border: none;" onclick="openAddStaffModal()">+ Add Staff</button>
+      </div>
     </div>
 
-    <div class="status-bar" style="margin-bottom: 14px;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">Add Personnel Record</h2>
-      <div class="sys-beacon" style="color: #2dd4bf;">ROSTER MANAGEMENT</div>
+    <div class="status-bar" style="margin: 14px 0;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">House Staff Directory</h2>
+      <div class="sys-beacon" style="color: #2dd4bf;">ACTIVE ROSTER</div>
     </div>
 
-    <form id="personnelForm">
-      <label>Personnel Photo</label>
-      <div class="personnel-photo-box">
-        <div class="personnel-preview" id="personnel-preview-box">
-          <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
-          <img id="personnel-img-tag" style="display: none;" alt="Preview" />
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-          <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
-          <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
-          <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear Photo</button>
-        </div>
-      </div>
+    <div id="staff-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Loading staff records...</div>
 
-      <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
-      <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
-
-      <label for="p-name">Name</label>
-      <input type="text" id="p-name" placeholder="e.g. Dmitry Ziskind" required>
-
-      <label for="p-position">Job Title / Position</label>
-      <input type="text" id="p-position" placeholder="e.g. Director / Team Leader" required>
-
-      <label for="p-startdate">Start Date</label>
-      <input type="date" id="p-startdate" required>
-
-      <label for="p-phone">Phone Number</label>
-      <input type="tel" id="p-phone" placeholder="e.g. 052-519-4744" required>
-
-      <label for="p-emergency">Emergency Contact Information</label>
-      <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540; Aruenb (Family): 052-5787945" required>
-
-      <label for="p-allergies">Allergies</label>
-      <input type="text" id="p-allergies" placeholder="e.g. None / Penicillin / Nuts" value="None" required>
-
-      <div class="confirm-box">
-        <label class="confirm-label">
-          <input type="checkbox" id="personnel-confirm-checkbox" required>
-          <span>I confirm this personnel entry and all contact information are verified and accurate.</span>
-        </label>
-      </div>
-
-      <button type="submit" id="personnelSubmitBtn" class="submit-btn" style="background-color: #0d9488;">Save to Personnel Sheet</button>
-    </form>
-    <div id="personnel-status-message"></div>
+    <div class="roster-table-container">
+      <table class="roster-table">
+        <thead>
+          <tr>
+            <th style="width: 70px;">Avatar</th>
+            <th>Name / Nickname</th>
+            <th>Role</th>
+            <th>Contact</th>
+            <th>Emergency Contact</th>
+            <th style="width: 70px; text-align: center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="staff-roster-body">
+          <!-- Staff rows populated dynamically via app.js -->
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- 4. RECCE FORM VIEW -->
@@ -184,12 +160,8 @@
 
       <label>Photos (Up to 10)</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">
-          📷 Take Photo
-        </button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">
-          🖼️ Photo Library
-        </button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">📷 Take Photo</button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">🖼️ Photo Library</button>
       </div>
 
       <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
@@ -257,7 +229,7 @@
     <div id="status-message"></div>
   </div>
 
-  <!-- 6. EMBEDDED CALENDAR VIEW -->
+  <!-- 6. OPERATIONS CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -267,7 +239,7 @@
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 7. EMBEDDED MAP VIEW -->
+  <!-- 7. PERIMETER & ASSETS MAP VIEW -->
   <div id="map-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -277,8 +249,60 @@
     <iframe src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- External JavaScript application logic -->
+  <!-- 8. IPAD-RESPONSIVE STAFF EDIT / ADD MODAL -->
+  <div id="staff-modal-overlay" class="modal-overlay" style="display: none;" onclick="closeStaffModalOnBackdrop(event)">
+    <div class="modal-content card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 id="staff-modal-title" style="margin: 0; font-size: 17px; color: #fff;">Staff Profile</h3>
+        <button type="button" class="back-btn" style="margin: 0; padding: 4px 10px;" onclick="closeStaffModal()">✕</button>
+      </div>
+
+      <form id="modalStaffForm">
+        <input type="hidden" id="modal-p-row" value="">
+        <input type="hidden" id="modal-p-existing-photo" value="">
+
+        <label>Personnel Photo</label>
+        <div class="personnel-photo-box">
+          <div class="personnel-preview" id="modal-preview-box">
+            <span id="modal-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
+            <img id="modal-img-tag" style="display: none;" alt="Preview" />
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerModalCamera()">📷 Take Photo</button>
+            <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerModalGallery()">🖼️ Upload File</button>
+            <button type="button" id="btn-modal-clear-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="clearModalPhoto()">✕ Clear</button>
+          </div>
+        </div>
+
+        <input type="file" id="modal-camera-input" accept="image/*" capture="user" style="display: none;">
+        <input type="file" id="modal-gallery-input" accept="image/*" style="display: none;">
+
+        <label for="modal-p-name">Full Name</label>
+        <input type="text" id="modal-p-name" placeholder="e.g. Dmitry Ziskind" required>
+
+        <label for="modal-p-nickname">Nickname / Callsign</label>
+        <input type="text" id="modal-p-nickname" placeholder="e.g. Dima / Eagle-1">
+
+        <label for="modal-p-position">Job Title / Position</label>
+        <input type="text" id="modal-p-position" placeholder="e.g. Director / Security Team" required>
+
+        <label for="modal-p-startdate">Start Date</label>
+        <input type="date" id="modal-p-startdate">
+
+        <label for="modal-p-phone">Phone Number</label>
+        <input type="tel" id="modal-p-phone" placeholder="e.g. 052-519-4744">
+
+        <label for="modal-p-emergency">Emergency Contact Information</label>
+        <input type="text" id="modal-p-emergency" placeholder="e.g. Spouse / Family Contact: 052-000-0000">
+
+        <label for="modal-p-allergies">Allergies / Medical Notes</label>
+        <input type="text" id="modal-p-allergies" placeholder="e.g. None / Penicillin" value="None">
+
+        <button type="submit" id="modalSubmitBtn" class="submit-btn" style="background-color: #0d9488; margin-top: 18px;">Save Staff Profile</button>
+      </form>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
-
