@@ -363,8 +363,32 @@
       vertical-align: middle;
     }
 
-    .roster-table tr:hover {
-      background: rgba(255, 255, 255, 0.02);
+    /* Whole row tap style */
+    .staff-row-clickable {
+      cursor: pointer;
+      transition: background-color 0.15s ease-in-out;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .staff-row-clickable:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .staff-row-clickable:active {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Phone links should not trigger row edit */
+    .staff-phone-link {
+      color: #60a5fa;
+      text-decoration: none;
+      display: inline-block;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+
+    .staff-phone-link:active {
+      background: rgba(96, 165, 250, 0.2);
     }
 
     /* Avatar & Interactive Speech Bubble */
@@ -403,6 +427,11 @@
       font-weight: bold;
       font-size: 14px;
       border: 2px solid #475569;
+      transition: transform 0.15s ease;
+    }
+
+    .staff-avatar-wrapper:active .staff-avatar-placeholder {
+      transform: scale(0.92);
     }
 
     /* Floating Nickname Speech Bubble */
@@ -439,29 +468,6 @@
     @keyframes popIn {
       from { opacity: 0; transform: translate(-50%, 8px) scale(0.85); }
       to { opacity: 1; transform: translate(-50%, 0) scale(1); }
-    }
-
-    .nickname-badge {
-      display: inline-block;
-      background: rgba(96, 165, 250, 0.15);
-      color: #60a5fa;
-      border: 1px solid #3b82f6;
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-top: 3px;
-    }
-
-    .btn-edit-staff {
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
     }
 
     /* Modal and Language Bar */
@@ -631,11 +637,10 @@
         <thead>
           <tr>
             <th style="width: 70px;">Avatar</th>
-            <th>Name / Nickname</th>
+            <th>Name</th>
             <th>Role</th>
             <th>Contact</th>
             <th>Emergency Contact</th>
-            <th style="width: 70px; text-align: center;">Action</th>
           </tr>
         </thead>
         <tbody id="staff-roster-body"></tbody>
@@ -1062,9 +1067,22 @@
     };
 
     /* ==========================================================================
-       STAFF ROSTER: AVATAR SPEECH BUBBLE & DIRECTORY
+       STAFF ROSTER: AVATAR POPUPS & ROW EDIT HANDLERS
        ========================================================================== */
-    window.showAvatarBubble = function(el, nickname, name) {
+    window.handleAvatarClick = function(event, rowIndex, hasPhoto, nickname, name) {
+      // Prevent the row click handler from triggering
+      if (event && event.stopPropagation) {
+        event.stopPropagation();
+      }
+
+      // If there is NO picture, open the edit section directly
+      if (!hasPhoto) {
+        openEditStaffModal(rowIndex);
+        return;
+      }
+
+      // If picture exists, display the floating nickname/callsign bubble
+      var el = event.currentTarget;
       var existing = el.querySelector('.nickname-speech-bubble');
       if (existing) {
         existing.remove();
@@ -1096,7 +1114,7 @@
       window.handleStaffRosterCallback = function(response) {
         if (!response || !response.roster || response.roster.length === 0) {
           statusDiv.innerText = "No staff records found.";
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No personnel records found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No personnel records found.</td></tr>';
           return;
         }
 
@@ -1106,37 +1124,37 @@
 
         staffRosterCache.forEach(function(member) {
           var tr = document.createElement('tr');
-          var initials = (member.name || "?").substring(0, 2).toUpperCase();
+          tr.className = 'staff-row-clickable';
+          
+          // Tap anywhere on the row to open edit section
+          tr.onclick = function() {
+            openEditStaffModal(member.rowIndex);
+          };
 
-          var avatarHtml = member.photoUrl 
+          var initials = (member.name || "?").substring(0, 2).toUpperCase();
+          var hasPhoto = Boolean(member.photoUrl && member.photoUrl.trim() !== "");
+
+          var avatarInnerHtml = hasPhoto
             ? '<img src="' + member.photoUrl + '" class="staff-avatar-img" alt="' + escapeHtml(member.name) + '" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div class=\\\'staff-avatar-placeholder\\\'>' + initials + '</div>\';">'
             : '<div class="staff-avatar-placeholder">' + initials + '</div>';
-
-          var nicknameBadge = member.nickname 
-            ? '<div class="nickname-badge">🏷️ ' + escapeHtml(member.nickname) + '</div>' 
-            : '';
 
           var cleanNick = escapeHtml(member.nickname || '').replace(/'/g, "\\'");
           var cleanName = escapeHtml(member.name || '').replace(/'/g, "\\'");
 
           tr.innerHTML = 
             '<td>' +
-              '<div class="staff-avatar-wrapper" onclick="showAvatarBubble(this, \'' + cleanNick + '\', \'' + cleanName + '\')" title="Tap to view Callsign">' +
-                avatarHtml +
+              '<div class="staff-avatar-wrapper" onclick="handleAvatarClick(event, ' + member.rowIndex + ', ' + hasPhoto + ', \'' + cleanNick + '\', \'' + cleanName + '\')" title="' + (hasPhoto ? 'Tap to view Callsign' : 'Tap to Edit') + '">' +
+                avatarInnerHtml +
               '</div>' +
             '</td>' +
             '<td>' +
               '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>' +
-              nicknameBadge +
             '</td>' +
             '<td>' + escapeHtml(member.position || 'Staff') + '</td>' +
             '<td>' +
-              (member.phone ? '<a href="tel:' + member.phone + '" style="color:#60a5fa; text-decoration:none;">📞 ' + escapeHtml(member.phone) + '</a>' : '—') +
+              (member.phone ? '<a href="tel:' + member.phone + '" class="staff-phone-link" onclick="event.stopPropagation();">📞 ' + escapeHtml(member.phone) + '</a>' : '—') +
             '</td>' +
-            '<td style="font-size: 12px; color: #cbd5e1;">' + escapeHtml(member.emergency || '—') + '</td>' +
-            '<td style="text-align: center;">' +
-              '<button type="button" class="btn-edit-staff" onclick="openEditStaffModal(' + member.rowIndex + ')">Edit</button>' +
-            '</td>';
+            '<td style="font-size: 12px; color: #cbd5e1;">' + escapeHtml(member.emergency || '—') + '</td>';
 
           tbody.appendChild(tr);
         });
@@ -1880,97 +1898,4 @@
             lng: venueCoords ? venueCoords.lng : "0",
             parkingLat: parkingCoords ? parkingCoords.lat : "",
             parkingLng: parkingCoords ? parkingCoords.lng : "",
-            photos: reccePhotos
-          };
-
-          fetch(webAppUrl, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(payload)
-          }).then(function() {
-            alert("Report submitted successfully.");
-            btn.disabled = false;
-            btn.innerText = "Generate & Submit Recce PDF";
-            btn.style.backgroundColor = "#7c3aed";
-            document.getElementById("recceForm").reset();
-            window.clearLocation();
-            reccePhotos = [];
-            var previewGrid = document.getElementById("photo-preview-grid");
-            if (previewGrid) previewGrid.innerHTML = "";
-            var countDisplay = document.getElementById("photo-count");
-            if (countDisplay) countDisplay.innerText = "0 photos attached";
-            var dRecce = document.getElementById('recce-date');
-            if (dRecce) dRecce.valueAsDate = new Date();
-            window.goBack();
-          }).catch(function(err) {
-            alert("Network error: " + err.message);
-            btn.disabled = false;
-            btn.innerText = "Generate & Submit Recce PDF";
-            btn.style.backgroundColor = "#7c3aed";
-            document.getElementById('recce-status-message').innerText = "Upload error: " + err;
-            document.getElementById('recce-status-message').className = "error";
-          });
-        };
-      }
-
-      var logForm = document.getElementById("logForm");
-      if (logForm) {
-        logForm.onsubmit = function(event) {
-          event.preventDefault();
-          var logConfirm = document.getElementById("log-confirm-checkbox");
-          if (!logConfirm.checked) {
-            alert("Please confirm the entry before submitting.");
-            return;
-          }
-
-          var confirmed = confirm("Submit this log entry?");
-          if (!confirmed) return;
-
-          var btn = document.getElementById("submitBtn");
-          btn.disabled = true;
-          btn.innerText = "Uploading...";
-          btn.style.backgroundColor = "#475569";
-
-          var payload = {
-            formType: "Log",
-            column2: document.getElementById("name").value,
-            column3: document.getElementById("date").value,
-            column4: document.getElementById("type").value,
-            column5: document.getElementById("remarks").value,
-            column6: document.getElementById("status").value,
-            column7: document.getElementById("evidence").value,
-            imageBase64: base64Image,
-            fileName: fileName,
-            mimeType: mimeType
-          };
-
-          fetch(webAppUrl, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(payload)
-          }).then(function() {
-            alert("Log entry submitted.");
-            btn.disabled = false;
-            btn.innerText = "Submit Log Entry";
-            btn.style.backgroundColor = "#2563eb";
-            document.getElementById("logForm").reset();
-            var dLog = document.getElementById('date');
-            if (dLog) dLog.valueAsDate = new Date();
-            base64Image = ""; fileName = ""; mimeType = "";
-            window.goBack();
-          }).catch(function(err) {
-            alert("Log error: " + err.message);
-            btn.disabled = false;
-            btn.innerText = "Submit Log Entry";
-            btn.style.backgroundColor = "#2563eb";
-            document.getElementById('status-message').innerText = "Error sending data.";
-            document.getElementById('status-message').className = "error";
-          });
-        };
-      }
-    };
-  </script>
-</body>
-</html>
+            photos:
