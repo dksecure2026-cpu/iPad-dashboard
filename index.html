@@ -21,7 +21,8 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg-base);
-      background-image: radial-gradient(circle at 50% 0%, rgba(60, 70, 85, 0.3) 0%, transparent 70%);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(60, 70, 85, 0.3) 0%, transparent 70%);
       padding: 16px;
       display: flex;
       justify-content: center;
@@ -42,7 +43,7 @@
       position: relative;
     }
 
-    .wide-card { max-width: 950px; }
+    .wide-card { max-width: 900px; }
 
     /* Header & Logo */
     .brand-header {
@@ -88,7 +89,7 @@
       box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
     }
 
-    /* Menu Buttons */
+    /* Clean Operator Action Buttons */
     .dash-btn {
       width: 100%;
       padding: 16px 20px;
@@ -108,16 +109,45 @@
       font-family: inherit;
     }
 
-    .dash-btn:active { transform: scale(0.99); filter: brightness(0.9); }
-    .dash-btn-sub { font-size: 13px; opacity: 0.85; font-weight: 400; color: #e2e8f0; }
+    .dash-btn:active {
+      transform: scale(0.99);
+      filter: brightness(0.9);
+    }
 
-    .btn-sec-log { background: #3a424e; border-left: 6px solid #64748b; }
-    .btn-action-items { background: #c25e00; border-left: 6px solid #fb923c; }
-    .btn-personnel { background: #0f766e; border-left: 6px solid #14b8a6; }
-    .btn-recce { background: #6d28d9; border-left: 6px solid #a78bfa; }
-    .btn-calendar { background: #1d4ed8; border-left: 6px solid #60a5fa; }
-    .btn-map { background: #15803d; border-left: 6px solid #4ade80; }
+    .dash-btn-sub {
+      font-size: 13px;
+      opacity: 0.85;
+      font-weight: 400;
+      color: #e2e8f0;
+    }
 
+    /* Professional Operator Palette */
+    .btn-sec-log { 
+      background: #3a424e; 
+      border-left: 6px solid #64748b; 
+    }
+    .btn-action-items { 
+      background: #c25e00; 
+      border-left: 6px solid #fb923c; 
+    }
+    .btn-personnel { 
+      background: #0f766e; 
+      border-left: 6px solid #14b8a6; 
+    }
+    .btn-recce { 
+      background: #6d28d9; 
+      border-left: 6px solid #a78bfa; 
+    }
+    .btn-calendar { 
+      background: #1d4ed8; 
+      border-left: 6px solid #60a5fa; 
+    }
+    .btn-map { 
+      background: #15803d; 
+      border-left: 6px solid #4ade80; 
+    }
+
+    /* Form UI */
     .back-btn {
       padding: 9px 16px;
       background-color: var(--panel-bg);
@@ -136,10 +166,11 @@
     label {
       font-weight: 600;
       display: block;
-      margin-top: 14px;
+      margin-top: 16px;
       margin-bottom: 6px;
       color: #cbd5e1;
       font-size: 13px;
+      letter-spacing: 0.3px;
     }
 
     input, select, textarea {
@@ -185,7 +216,7 @@
 
     iframe { border: 1px solid var(--border-color); border-radius: 8px; }
     #recce-map-container { height: 350px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; cursor: crosshair; }
-
+    
     .coord-display {
       font-size: 13px;
       color: #cbd5e1;
@@ -203,7 +234,7 @@
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 14px;
-      margin-top: 16px;
+      margin-top: 20px;
     }
     .confirm-label {
       display: flex;
@@ -213,16 +244,18 @@
       font-size: 13px;
       color: #e2e8f0;
       font-weight: 500;
+      line-height: 1.4;
     }
     .confirm-label input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: #2563eb; }
 
+    /* Open Action Item Card */
     .task-card {
       background: var(--panel-bg);
       border: 1px solid var(--border-color);
       border-left: 4px solid #fb923c;
       border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
     }
     .task-badge {
       display: inline-block;
@@ -231,6 +264,7 @@
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .close-item-btn {
       width: 100%;
@@ -241,230 +275,86 @@
       border-radius: 6px;
       font-weight: 600;
       font-size: 14px;
-      margin-top: 12px;
+      margin-top: 14px;
       cursor: pointer;
       font-family: inherit;
     }
+    .close-item-btn:active {
+      filter: brightness(0.9);
+    }
 
-    /* Live Staff Table */
-    .roster-table-container {
-      overflow-x: auto;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--panel-bg);
+    /* Action Item Updates Section */
+    .updates-section {
       margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
-    table.roster-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 14px;
-    }
-    table.roster-table th {
-      background: #181b22;
-      color: var(--text-secondary);
-      padding: 12px 14px;
+    .updates-header {
       font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 8px;
     }
-    table.roster-table td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-color);
-      vertical-align: middle;
-    }
-    table.roster-table tr.clickable-row {
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    table.roster-table tr.clickable-row:hover {
-      background: rgba(20, 184, 166, 0.12);
-    }
-    table.roster-table tr.empty-row {
-      background: rgba(100, 116, 139, 0.08);
-      font-style: italic;
-      color: #94a3b8;
-    }
-
-    /* Staff Photo Container & Interactive Nickname Bubble */
-    .photo-wrapper {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .photo-wrapper.has-nickname {
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .staff-thumb {
-      width: 50px;
-      height: 60px;
-      object-fit: cover;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-      display: block;
-      background: var(--card-bg);
-    }
-    .staff-thumb-placeholder {
-      width: 50px;
-      height: 60px;
-      background: var(--card-bg);
-      border: 1px dashed var(--border-light);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      color: var(--text-secondary);
-      text-align: center;
-    }
-
-    /* Floating Nickname Callout Bubble */
-    .nickname-bubble {
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%) translateY(4px);
-      background: #0f172a;
-      color: #38bdf8;
-      border: 1.5px solid #0284c7;
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-      z-index: 100;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
-    }
-
-    .nickname-bubble::after {
-      content: "";
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 6px;
-      border-style: solid;
-      border-color: #0284c7 transparent transparent transparent;
-    }
-
-    .nickname-bubble.active {
-      opacity: 1;
-      visibility: visible;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* Modal Sheet Editor Popup - Fixed for iPad Viewport */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
-      z-index: 9999;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 20px 16px 40px 16px;
-      justify-content: center;
-      align-items: flex-start;
-    }
-    .modal-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      width: 100%;
-      max-width: 620px;
-      max-height: 90vh;
+    .updates-list {
       display: flex;
       flex-direction: column;
-      padding: 0;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      position: relative;
-      margin: auto 0;
-      transition: direction 0.2s ease;
-    }
-    .modal-header-sticky {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border-color);
-      padding: 16px 20px;
-      background: var(--card-bg);
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-      flex-shrink: 0;
-    }
-    .modal-scroll-body {
+      gap: 8px;
+      max-height: 200px;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 16px 20px 24px 20px;
+      margin-bottom: 10px;
     }
-
-    /* Language Switcher Bar inside Modal */
-    .lang-switcher-bar {
+    .update-bubble {
+      background: rgba(0, 0, 0, 0.25);
+      border-left: 3px solid #60a5fa;
+      border-radius: 0 6px 6px 0;
+      padding: 8px 12px;
+    }
+    .update-meta {
+      font-size: 11px;
+      color: #94a3b8;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 6px 12px;
-      margin-bottom: 16px;
+      margin-bottom: 4px;
     }
-    .lang-selector-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      letter-spacing: 0.4px;
+    .update-content {
+      font-size: 13px;
+      color: #f1f5f9;
+      line-height: 1.4;
+      white-space: pre-wrap;
     }
-    .lang-btn-group {
+    .add-update-container {
       display: flex;
-      gap: 6px;
+      gap: 8px;
+      margin-top: 6px;
     }
-    .lang-btn {
-      padding: 6px 12px;
-      background: rgba(255, 255, 255, 0.05);
+    .update-input-field {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 13px;
+      background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      color: var(--text-secondary);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      -webkit-appearance: none;
-      transition: all 0.15s ease;
-    }
-    .lang-btn.active {
-      background: #0d9488;
-      border-color: #14b8a6;
       color: #ffffff;
-      box-shadow: 0 2px 6px rgba(13, 148, 136, 0.35);
+    }
+    .btn-add-update {
+      padding: 0 16px;
+      background-color: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-add-update:disabled {
+      background-color: #475569;
+      cursor: not-allowed;
     }
 
-    /* RTL adaptations when Hebrew is chosen */
-    .modal-card[dir="rtl"] {
-      text-align: right;
-    }
-    .modal-card[dir="rtl"] .modal-header-sticky {
-      flex-direction: row-reverse;
-    }
-    .modal-card[dir="rtl"] .lang-switcher-bar {
-      flex-direction: row-reverse;
-    }
-    .modal-card[dir="rtl"] .confirm-label {
-      flex-direction: row-reverse;
-      text-align: right;
-    }
-
+    /* Personnel Photo Section */
     .personnel-photo-box {
       display: flex;
       align-items: center;
@@ -486,6 +376,7 @@
       justify-content: center;
       overflow: hidden;
       flex-shrink: 0;
+      position: relative;
     }
     .personnel-preview img {
       width: 100%;
@@ -517,8 +408,8 @@
     </button>
 
     <button type="button" class="dash-btn btn-personnel" onclick="openPersonnel()">
-      <span>Staff Profiles</span>
-      <span class="dash-btn-sub">Live Roster & Contacts</span>
+      <span>Personnel Roster</span>
+      <span class="dash-btn-sub">Team & Emergency Contacts</span>
     </button>
 
     <button type="button" class="dash-btn btn-recce" onclick="openRecce()">
@@ -539,8 +430,15 @@
 
   <!-- 2. OPEN ACTION ITEMS VIEW -->
   <div id="open-items-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <div class="status-bar" style="margin-bottom: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12px; color: var(--text-secondary);">Active Operator:</span>
+        <input type="text" id="active-operator-name" value="Miki Tofts" style="width: 140px; padding: 6px 10px; font-size: 13px;" title="Current Operator Name">
+      </div>
+    </div>
+
+    <div class="status-bar" style="margin: 14px 0;">
       <h2 style="margin: 0; font-size: 18px; color: #fff;">Open Action Items</h2>
       <div class="sys-beacon">LIVE QUEUE</div>
     </div>
@@ -548,120 +446,66 @@
     <div id="open-items-list"></div>
   </div>
 
-  <!-- 3. LIVE STAFF ROSTER VIEWER -->
+  <!-- 3. PERSONNEL ROSTER VIEW -->
   <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <button type="button" class="back-btn" style="margin: 0;" onclick="goBack()">← Back to Menu</button>
-      <div style="display: flex; gap: 8px;">
-        <button type="button" class="back-btn" style="margin: 0; background: #0f766e; color: #fff; border: none;" onclick="openNewStaffPopup()">+ Add New Staff</button>
-        <button type="button" class="back-btn" style="margin: 0;" onclick="loadStaffRoster()">🔄 Refresh</button>
-      </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
+      <button type="button" class="back-btn" style="background-color: #0f766e; color: #fff; border: none;" onclick="openGoogleSheet()">📊 Open Google Sheet</button>
     </div>
 
-    <div class="status-bar" style="margin-top: 14px; margin-bottom: 8px;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">House Staff - Operations Roster</h2>
-      <div class="sys-beacon" style="color: #2dd4bf;">SYNCED</div>
-    </div>
-    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-      Tap any row below to edit or fill employee information and photos. Tap an assigned staff photo to reveal their callsign/nickname.
+    <div class="status-bar" style="margin-bottom: 14px;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">Add Personnel Record</h2>
+      <div class="sys-beacon" style="color: #2dd4bf;">ROSTER MANAGEMENT</div>
     </div>
 
-    <div id="roster-loading-status" style="color: #60a5fa; font-size: 14px; text-align: center; padding: 20px 0;">Loading House Staff...</div>
-
-    <div class="roster-table-container" id="roster-table-wrapper" style="display: none;">
-      <table class="roster-table">
-        <thead>
-          <tr>
-            <th style="width: 45px;">Row</th>
-            <th style="width: 65px;">Photo</th>
-            <th>Name</th>
-            <th>Position</th>
-            <th>Phone</th>
-            <th>Emergency Contact</th>
-            <th>Allergies</th>
-          </tr>
-        </thead>
-        <tbody id="roster-table-body"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 4. MODAL POPUP: EDIT / FILL ROW (WITH MULTI-LANGUAGE SWITCHER) -->
-  <div id="staff-modal" class="modal-overlay">
-    <div class="modal-card" id="staff-modal-card" dir="ltr">
-      <div class="modal-header-sticky">
-        <h3 id="modal-heading" style="margin: 0; font-size: 17px; color: #fff;">Staff Record</h3>
-        <button type="button" class="back-btn" id="modal-cancel-header" style="margin: 0; padding: 8px 14px; background: #3b424e; color: #fff;" onclick="closeStaffModal()">✕ Cancel</button>
-      </div>
-
-      <div class="modal-scroll-body">
-        
-        <!-- Language Switcher Bar -->
-        <div class="lang-switcher-bar">
-          <span class="lang-selector-label" id="lbl-language-title">Form Language:</span>
-          <div class="lang-btn-group">
-            <button type="button" class="lang-btn active" id="btn-lang-en" onclick="setStaffFormLanguage('en')">EN</button>
-            <button type="button" class="lang-btn" id="btn-lang-ru" onclick="setStaffFormLanguage('ru')">Русский</button>
-            <button type="button" class="lang-btn" id="btn-lang-he" onclick="setStaffFormLanguage('he')">עברית</button>
-          </div>
+    <form id="personnelForm">
+      <label>Personnel Photo</label>
+      <div class="personnel-photo-box">
+        <div class="personnel-preview" id="personnel-preview-box">
+          <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
+          <img id="personnel-img-tag" style="display: none;" alt="Preview" />
         </div>
-
-        <form id="personnelForm">
-          <input type="hidden" id="p-row-index" value="">
-          <input type="hidden" id="p-existing-photo" value="">
-
-          <!-- Photo Section -->
-          <label id="lbl-p-photo">Staff Portrait Photo</label>
-          <div class="personnel-photo-box">
-            <div class="personnel-preview" id="personnel-preview-box">
-              <span id="personnel-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
-              <img id="personnel-img-tag" style="display: none;" alt="Preview" />
-            </div>
-            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-              <button type="button" id="btn-p-cam" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
-              <button type="button" id="btn-p-gal" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
-              <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear / Replace</button>
-            </div>
-          </div>
-
-          <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
-          <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
-
-          <label for="p-name" id="lbl-p-name">Name</label>
-          <input type="text" id="p-name" placeholder="e.g. Evgeni Boguslavsky" required>
-
-          <label for="p-nickname" id="lbl-p-nickname">Assigned Nickname / Callsign (Optional)</label>
-          <input type="text" id="p-nickname" placeholder="e.g. Maverick / Bogus">
-
-          <label for="p-position" id="lbl-p-position">Job Title / Position</label>
-          <input type="text" id="p-position" placeholder="e.g. Maintenance Engineer" required>
-
-          <label for="p-startdate" id="lbl-p-startdate">Start Date</label>
-          <input type="date" id="p-startdate" required>
-
-          <label for="p-phone" id="lbl-p-phone">Phone Number</label>
-          <input type="tel" id="p-phone" placeholder="e.g. 050-581-8826" required>
-
-          <label for="p-emergency" id="lbl-p-emergency">Emergency Contact Information</label>
-          <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540" required>
-
-          <label for="p-allergies" id="lbl-p-allergies">Allergies</label>
-          <input type="text" id="p-allergies" placeholder="e.g. None / Parsley" value="None" required>
-
-          <div class="confirm-box">
-            <label class="confirm-label">
-              <input type="checkbox" id="personnel-confirm-checkbox" required>
-              <span id="lbl-p-confirm">I confirm this staff profile information is verified and accurate.</span>
-            </label>
-          </div>
-
-          <button type="submit" id="personnelSubmitBtn" class="submit-btn" style="background-color: #0d9488;">Save to Row</button>
-        </form>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+          <button type="button" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerPersonnelCamera()">📷 Take Photo (Camera)</button>
+          <button type="button" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerPersonnelGallery()">🖼️ Upload from Device</button>
+          <button type="button" id="btn-remove-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="removePersonnelPhoto()">✕ Clear Photo</button>
+        </div>
       </div>
-    </div>
+
+      <input type="file" id="personnel-camera-input" accept="image/*" capture="user" style="display: none;">
+      <input type="file" id="personnel-gallery-input" accept="image/*" style="display: none;">
+
+      <label for="p-name">Name</label>
+      <input type="text" id="p-name" placeholder="e.g. Dmitry Ziskind" required>
+
+      <label for="p-position">Job Title / Position</label>
+      <input type="text" id="p-position" placeholder="e.g. Director / Team Leader" required>
+
+      <label for="p-startdate">Start Date</label>
+      <input type="date" id="p-startdate" required>
+
+      <label for="p-phone">Phone Number</label>
+      <input type="tel" id="p-phone" placeholder="e.g. 052-519-4744" required>
+
+      <label for="p-emergency">Emergency Contact Information</label>
+      <input type="text" id="p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540; Aruenb (Family): 052-5787945" required>
+
+      <label for="p-allergies">Allergies</label>
+      <input type="text" id="p-allergies" placeholder="e.g. None / Penicillin / Nuts" value="None" required>
+
+      <div class="confirm-box">
+        <label class="confirm-label">
+          <input type="checkbox" id="personnel-confirm-checkbox" required>
+          <span>I confirm this personnel entry and all contact information are verified and accurate.</span>
+        </label>
+      </div>
+
+      <button type="submit" id="personnelSubmitBtn" class="submit-btn" style="background-color: #0d9488;">Save to Personnel Sheet</button>
+    </form>
+    <div id="personnel-status-message"></div>
   </div>
 
-  <!-- 5. RECCE FORM VIEW -->
+  <!-- 4. RECCE FORM VIEW -->
   <div id="recce-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -671,7 +515,7 @@
 
     <form id="recceForm">
       <label for="recce-location">Facility / Location Name</label>
-      <input type="text" id="recce-location" placeholder="e.g. Compound Alpha" required>
+      <input type="text" id="recce-location" placeholder="e.g. Compound Alpha / Hotel Grand" required>
 
       <label for="recce-officer">Officer Name</label>
       <input type="text" id="recce-officer" placeholder="Your name" required>
@@ -680,7 +524,7 @@
       <input type="date" id="recce-date" required>
 
       <label for="recce-desc">Operational Notes / Briefing</label>
-      <textarea id="recce-desc" placeholder="Ingress corridors, access checkpoints..." required></textarea>
+      <textarea id="recce-desc" placeholder="Ingress corridors, access checkpoints, clearance codes..." required></textarea>
 
       <label>Location & Parking Setup</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
@@ -716,8 +560,12 @@
 
       <label>Photos (Up to 10)</label>
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">📷 Take Photo</button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">🖼️ Photo Library</button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">
+          📷 Take Photo
+        </button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">
+          🖼️ Photo Library
+        </button>
       </div>
 
       <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
@@ -738,7 +586,7 @@
     <div id="recce-status-message"></div>
   </div>
 
-  <!-- 6. STANDARD LOG FORM VIEW -->
+  <!-- 5. STANDARD LOG FORM VIEW -->
   <div id="form-view" class="card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -785,7 +633,7 @@
     <div id="status-message"></div>
   </div>
 
-  <!-- 7. EMBEDDED CALENDAR VIEW -->
+  <!-- 6. EMBEDDED CALENDAR VIEW -->
   <div id="calendar-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -795,7 +643,7 @@
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 8. EMBEDDED MAP VIEW -->
+  <!-- 7. EMBEDDED MAP VIEW -->
   <div id="map-view" class="card wide-card">
     <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
     <div class="status-bar" style="margin-bottom: 14px;">
@@ -807,12 +655,11 @@
 
   <script>
     var webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
+    var personnelSheetUrl = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit#gid=0";
 
     var base64Image = "", fileName = "", mimeType = "";
     var reccePhotos = [];
     var personnelPhotoBase64 = "";
-    var currentLoadedRoster = [];
-    var currentStaffRowContext = null;
 
     var recceMap = null;
     var currentPinMode = 'venue';
@@ -821,143 +668,28 @@
     var venueMarker = null;
     var parkingMarker = null;
 
-    /* Multi-Language Form Dictionaries */
-    var STAFF_I18N = {
-      en: {
-        dir: 'ltr',
-        langTitle: 'Form Language:',
-        assignTitle: 'Assign New Staff to Row ',
-        editTitle: 'Edit Record: ',
-        cancelBtn: '✕ Cancel',
-        photoLabel: 'Staff Portrait Photo',
-        takePhoto: '📷 Take Photo (Camera)',
-        uploadPhoto: '🖼️ Upload from Device',
-        clearPhoto: '✕ Clear / Replace',
-        nameLabel: 'Name',
-        namePlaceholder: 'e.g. Evgeni Boguslavsky',
-        nicknameLabel: 'Assigned Nickname / Callsign (Optional)',
-        nicknamePlaceholder: 'e.g. Maverick / Bogus',
-        positionLabel: 'Job Title / Position',
-        positionPlaceholder: 'e.g. Maintenance Engineer',
-        startdateLabel: 'Start Date',
-        phoneLabel: 'Phone Number',
-        phonePlaceholder: 'e.g. 050-581-8826',
-        emergencyLabel: 'Emergency Contact Information',
-        emergencyPlaceholder: 'e.g. Olga (Manager): 052-440-6540',
-        allergiesLabel: 'Allergies',
-        allergiesPlaceholder: 'e.g. None / Parsley',
-        confirmText: 'I confirm this staff profile information is verified and accurate.',
-        submitBtn: 'Save to Row'
-      },
-      ru: {
-        dir: 'ltr',
-        langTitle: 'Язык формы:',
-        assignTitle: 'Назначить сотрудника на строку ',
-        editTitle: 'Редактировать запись: ',
-        cancelBtn: '✕ Отмена',
-        photoLabel: 'Фотография сотрудника',
-        takePhoto: '📷 Сделать снимок (Камера)',
-        uploadPhoto: '🖼️ Загрузить из галереи',
-        clearPhoto: '✕ Очистить / Заменить',
-        nameLabel: 'ФИО',
-        namePlaceholder: 'напр. Евгений Богуславский',
-        nicknameLabel: 'Позывной / Никнейм (Опционально)',
-        nicknamePlaceholder: 'напр. Маверик / Богус',
-        positionLabel: 'Должность / Профиль',
-        positionPlaceholder: 'напр. Инженер по обслуживанию',
-        startdateLabel: 'Дата начала работы',
-        phoneLabel: 'Номер телефона',
-        phonePlaceholder: 'напр. 050-581-8826',
-        emergencyLabel: 'Контакт для экстренной связи',
-        emergencyPlaceholder: 'напр. Ольга (Менеджер): 052-440-6540',
-        allergiesLabel: 'Аллергии / Противопоказания',
-        allergiesPlaceholder: 'напр. Нет / Петрушка',
-        confirmText: 'Я подтверждаю, что указанные данные сотрудника верны и проверены.',
-        submitBtn: 'Сохранить данные'
-      },
-      he: {
-        dir: 'rtl',
-        langTitle: 'שפת הטופס:',
-        assignTitle: 'הקצאת איש צוות חדש לשורה ',
-        editTitle: 'עריכת רשומת איש צוות: ',
-        cancelBtn: '✕ ביטול',
-        photoLabel: 'תמונת פרופיל של העובד',
-        takePhoto: '📷 צילום תמונה (מצלמה)',
-        uploadPhoto: '🖼️ העלאה מהמכשיר',
-        clearPhoto: '✕ נקה / החלף תמונה',
-        nameLabel: 'שם מלא',
-        namePlaceholder: 'לדוגמה: יבגני בוגוסלבסקי',
-        nicknameLabel: 'כינוי / אות קריאה מבצעי (אופציונלי)',
-        nicknamePlaceholder: 'לדוגמה: מאבריק / בוגוס',
-        positionLabel: 'תפקיד / הגדרת משרה',
-        positionPlaceholder: 'לדוגמה: מהנדס אחזקה',
-        startdateLabel: 'תאריך תחילת עבודה',
-        phoneLabel: 'מספר טלפון',
-        phonePlaceholder: 'לדוגמה: 050-581-8826',
-        emergencyLabel: 'איש קשר לחירום',
-        emergencyPlaceholder: 'לדוגמה: אולגה (מנהלת): 052-440-6540',
-        allergiesLabel: 'אלרגיות / רגישויות',
-        allergiesPlaceholder: 'לדוגמה: ללא / פטרוזיליה',
-        confirmText: 'אני מאשר בזאת כי פרטי איש הצוות אומתו ומדויקים.',
-        submitBtn: 'שמור לשורה'
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDateDisplay(dStr) {
+      if (!dStr) return '';
+      try {
+        var d = new Date(dStr);
+        if (isNaN(d.getTime())) return dStr;
+        return d.toLocaleDateString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+      } catch(e) {
+        return dStr;
       }
-    };
-
-    window.setStaffFormLanguage = function(lang) {
-      var dict = STAFF_I18N[lang] || STAFF_I18N.en;
-      var modalCard = document.getElementById('staff-modal-card');
-      if (modalCard) modalCard.setAttribute('dir', dict.dir);
-
-      // Active state update on pill buttons
-      ['en', 'ru', 'he'].forEach(function(l) {
-        var b = document.getElementById('btn-lang-' + l);
-        if (b) {
-          if (l === lang) b.classList.add('active');
-          else b.classList.remove('active');
-        }
-      });
-
-      // Update text nodes
-      document.getElementById('lbl-language-title').innerText = dict.langTitle;
-      document.getElementById('modal-cancel-header').innerText = dict.cancelBtn;
-      document.getElementById('lbl-p-photo').innerText = dict.photoLabel;
-      document.getElementById('btn-p-cam').innerText = dict.takePhoto;
-      document.getElementById('btn-p-gal').innerText = dict.uploadPhoto;
-      document.getElementById('btn-remove-photo').innerText = dict.clearPhoto;
-
-      document.getElementById('lbl-p-name').innerText = dict.nameLabel;
-      document.getElementById('p-name').placeholder = dict.namePlaceholder;
-
-      document.getElementById('lbl-p-nickname').innerText = dict.nicknameLabel;
-      document.getElementById('p-nickname').placeholder = dict.nicknamePlaceholder;
-
-      document.getElementById('lbl-p-position').innerText = dict.positionLabel;
-      document.getElementById('p-position').placeholder = dict.positionPlaceholder;
-
-      document.getElementById('lbl-p-startdate').innerText = dict.startdateLabel;
-
-      document.getElementById('lbl-p-phone').innerText = dict.phoneLabel;
-      document.getElementById('p-phone').placeholder = dict.phonePlaceholder;
-
-      document.getElementById('lbl-p-emergency').innerText = dict.emergencyLabel;
-      document.getElementById('p-emergency').placeholder = dict.emergencyPlaceholder;
-
-      document.getElementById('lbl-p-allergies').innerText = dict.allergiesLabel;
-      document.getElementById('p-allergies').placeholder = dict.allergiesPlaceholder;
-
-      document.getElementById('lbl-p-confirm').innerText = dict.confirmText;
-      document.getElementById('personnelSubmitBtn').innerText = dict.submitBtn;
-
-      // Update heading dynamically
-      if (currentStaffRowContext) {
-        var heading = document.getElementById('modal-heading');
-        if (currentStaffRowContext.isEmpty) {
-          heading.innerText = dict.assignTitle + currentStaffRowContext.rowIndex;
-        } else {
-          heading.innerText = dict.editTitle + (currentStaffRowContext.name || ("Row " + currentStaffRowContext.rowIndex));
-        }
-      }
-    };
+    }
 
     window.hideAllViews = function() {
       document.getElementById('dashboard-view').style.display = 'none';
@@ -985,7 +717,10 @@
     window.openPersonnel = function() {
       window.hideAllViews();
       document.getElementById('personnel-view').style.display = 'block';
-      loadStaffRoster();
+    };
+
+    window.openGoogleSheet = function() {
+      window.open(personnelSheetUrl, '_blank');
     };
 
     window.openCalendar = function() {
@@ -1001,7 +736,9 @@
     window.openRecce = function() {
       window.hideAllViews();
       document.getElementById('recce-view').style.display = 'block';
-      setTimeout(function() { initRecceMap(); }, 200);
+      setTimeout(function() {
+        initRecceMap();
+      }, 200);
     };
 
     window.goBack = function() {
@@ -1011,212 +748,10 @@
       if (s1) s1.innerText = "";
       var s2 = document.getElementById('recce-status-message');
       if (s2) s2.innerText = "";
+      var s3 = document.getElementById('personnel-status-message');
+      if (s3) s3.innerText = "";
     };
 
-    /* Nickname Bubble Touch Handler */
-    window.showNicknameBubble = function(event, element) {
-      event.stopPropagation();
-
-      var bubble = element.querySelector('.nickname-bubble');
-      if (!bubble) return;
-
-      document.querySelectorAll('.nickname-bubble.active').forEach(function(b) {
-        if (b !== bubble) b.classList.remove('active');
-      });
-
-      bubble.classList.toggle('active');
-
-      if (bubble.classList.contains('active')) {
-        setTimeout(function() {
-          bubble.classList.remove('active');
-        }, 2500);
-      }
-    };
-
-    document.addEventListener('click', function() {
-      document.querySelectorAll('.nickname-bubble.active').forEach(function(b) {
-        b.classList.remove('active');
-      });
-    });
-
-    /* Live Staff Table Fetch */
-    function loadStaffRoster() {
-      var statusDiv = document.getElementById('roster-loading-status');
-      var tableWrapper = document.getElementById('roster-table-wrapper');
-      var tbody = document.getElementById('roster-table-body');
-
-      statusDiv.style.display = "block";
-      statusDiv.innerText = "Syncing House Staff rows...";
-      tableWrapper.style.display = "none";
-      tbody.innerHTML = "";
-
-      var scriptId = 'jsonp-staff-roster';
-      var oldScript = document.getElementById(scriptId);
-      if (oldScript) oldScript.remove();
-
-      window.handleStaffRosterCallback = function(response) {
-        statusDiv.style.display = "none";
-        if (!response || !response.roster || response.roster.length === 0) {
-          statusDiv.style.display = "block";
-          statusDiv.innerText = "No staff records found in House Staff tab.";
-          return;
-        }
-
-        currentLoadedRoster = response.roster;
-        tableWrapper.style.display = "block";
-        tbody.innerHTML = "";
-
-        response.roster.forEach(function(row) {
-          var tr = document.createElement('tr');
-          var isAssigned = !row.isEmpty && (row.name && row.name.trim() !== "");
-          var hasNickname = isAssigned && row.nickname && row.nickname.trim() !== "";
-
-          tr.className = "clickable-row" + (!isAssigned ? " empty-row" : "");
-
-          var photoTd = "";
-          if (isAssigned) {
-            photoTd = '<div class="photo-wrapper ' + (hasNickname ? 'has-nickname' : '') + '" ' + 
-                      (hasNickname ? 'onclick="showNicknameBubble(event, this)"' : '') + '>' +
-                        (row.photoUrl 
-                          ? '<img src="' + row.photoUrl + '" alt="' + row.name + '" class="staff-thumb" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'50\\\' height=\\\'60\\\' viewBox=\\\'0 0 50 60\\\'><rect width=\\\'50\\\' height=\\\'60\\\' fill=\\\'%231f232b\\\'/><text x=\\\'50%\\\' y=\\\'50%\\\' dominant-baseline=\\\'middle\\\' text-anchor=\\\'middle\\\' fill=\\\'%23a4b0be\\\' font-size=\\\'9\\\'>No Photo</text></svg>\';">'
-                          : '<div class="staff-thumb-placeholder">No Photo</div>') +
-                        (hasNickname ? '<div class="nickname-bubble">“' + row.nickname + '”</div>' : '') +
-                      '</div>';
-          } else {
-            photoTd = '<div class="staff-thumb-placeholder">No Photo</div>';
-          }
-
-          if (!isAssigned) {
-            tr.innerHTML = 
-              '<td style="font-weight: bold; color: var(--text-secondary);">' + row.rowIndex + '</td>' +
-              '<td>' + photoTd + '</td>' +
-              '<td colspan="5" style="color: #60a5fa; font-weight: 500;">[ Empty Row ' + row.rowIndex + ' — Tap to assign staff ]</td>';
-          } else {
-            tr.innerHTML = 
-              '<td style="font-weight: bold; color: var(--text-secondary);">' + row.rowIndex + '</td>' +
-              '<td>' + photoTd + '</td>' +
-              '<td style="font-weight: 600; color: #fff;">' + (row.name || '—') + '</td>' +
-              '<td>' + (row.position || '—') + '</td>' +
-              '<td><a href="tel:' + row.phone + '" style="color:#60a5fa; text-decoration:none;" onclick="event.stopPropagation();">' + (row.phone || '—') + '</a></td>' +
-              '<td style="font-size: 13px; color: #cbd5e1;">' + (row.emergency || '—') + '</td>' +
-              '<td style="font-size: 13px;">' + (row.allergies || 'None') + '</td>';
-          }
-
-          tr.onclick = function() {
-            openStaffModalForRow(row);
-          };
-
-          tbody.appendChild(tr);
-        });
-      };
-
-      var script = document.createElement('script');
-      script.id = scriptId;
-      script.src = webAppUrl + '?action=getStaffRoster&callback=handleStaffRosterCallback&t=' + Date.now();
-      document.body.appendChild(script);
-    }
-
-    /* Modal Form Handlers */
-    function openStaffModalForRow(row) {
-      currentStaffRowContext = row;
-      var modal = document.getElementById('staff-modal');
-      modal.style.display = 'flex';
-
-      var scrollBody = modal.querySelector('.modal-scroll-body');
-      if (scrollBody) scrollBody.scrollTop = 0;
-
-      document.getElementById('p-row-index').value = row.rowIndex;
-      document.getElementById('p-existing-photo').value = row.photoUrl ? ('=IMAGE("' + row.photoUrl + '", 1)') : '';
-
-      // Reset Language explicitly to English on open
-      window.setStaffFormLanguage('en');
-
-      document.getElementById('p-name').value = row.name || '';
-      document.getElementById('p-nickname').value = row.nickname || '';
-      document.getElementById('p-position').value = row.position || '';
-      document.getElementById('p-phone').value = row.phone || '';
-      document.getElementById('p-emergency').value = row.emergency || '';
-      document.getElementById('p-allergies').value = row.allergies || 'None';
-
-      if (row.startDate) {
-        document.getElementById('p-startdate').value = row.startDate;
-      } else {
-        document.getElementById('p-startdate').valueAsDate = new Date();
-      }
-
-      var img = document.getElementById('personnel-img-tag');
-      var placeholder = document.getElementById('personnel-placeholder');
-      var removeBtn = document.getElementById('btn-remove-photo');
-
-      personnelPhotoBase64 = "";
-
-      if (row.photoUrl) {
-        img.src = row.photoUrl;
-        img.setAttribute('referrerpolicy', 'no-referrer');
-        img.style.display = "block";
-        placeholder.style.display = "none";
-        removeBtn.style.display = "block";
-      } else {
-        img.style.display = "none";
-        placeholder.style.display = "block";
-        removeBtn.style.display = "none";
-      }
-
-      document.getElementById('personnel-confirm-checkbox').checked = false;
-    }
-
-    window.openNewStaffPopup = function() {
-      var nextRow = currentLoadedRoster.length > 0 
-        ? (currentLoadedRoster[currentLoadedRoster.length - 1].rowIndex + 1)
-        : 2;
-
-      openStaffModalForRow({
-        rowIndex: nextRow,
-        name: '', nickname: '', position: '', startDate: '', phone: '', emergency: '', allergies: 'None', isEmpty: true
-      });
-    };
-
-    window.closeStaffModal = function() {
-      document.getElementById('staff-modal').style.display = 'none';
-      personnelPhotoBase64 = "";
-      currentStaffRowContext = null;
-    };
-
-    /* Personnel Photo Functions */
-    window.triggerPersonnelCamera = function() {
-      var el = document.getElementById('personnel-camera-input');
-      if (el) el.click();
-    };
-
-    window.triggerPersonnelGallery = function() {
-      var el = document.getElementById('personnel-gallery-input');
-      if (el) el.click();
-    };
-
-    window.removePersonnelPhoto = function() {
-      personnelPhotoBase64 = "";
-      document.getElementById('p-existing-photo').value = "";
-      document.getElementById('personnel-img-tag').style.display = "none";
-      document.getElementById('personnel-img-tag').src = "";
-      document.getElementById('personnel-placeholder').style.display = "block";
-      document.getElementById('btn-remove-photo').style.display = "none";
-    };
-
-    function handlePersonnelImage(file) {
-      if (!file) return;
-      toBase64(file).then(function(b64) {
-        personnelPhotoBase64 = b64;
-        var img = document.getElementById('personnel-img-tag');
-        img.src = b64;
-        img.style.display = "block";
-        document.getElementById('personnel-placeholder').style.display = "none";
-        document.getElementById('btn-remove-photo').style.display = "block";
-      }).catch(function(err) {
-        alert("Could not process photo: " + err);
-      });
-    }
-
-    /* Open Action Items Functions */
     function loadOpenItems() {
       var statusDiv = document.getElementById('open-items-status');
       var listDiv = document.getElementById('open-items-list');
@@ -1248,6 +783,24 @@
             ? '<div style="margin-top: 8px;"><a href="' + item.evidence + '" target="_blank" style="color: #60a5fa; font-weight: 600; font-size: 13px; text-decoration: none;">🔗 View Uploaded Evidence</a></div>'
             : '';
 
+          // Parse updates (handles both JSON array and empty states)
+          var updates = [];
+          if (Array.isArray(item.updates)) {
+            updates = item.updates;
+          } else if (typeof item.updates === 'string' && item.updates.trim()) {
+            try { updates = JSON.parse(item.updates); } catch(e) {}
+          }
+
+          var updatesListHtml = updates.map(function(u) {
+            return '<div class="update-bubble">' +
+                     '<div class="update-meta">' +
+                       '<span>' + escapeHtml(u.author || 'Operator') + '</span>' +
+                       '<span>' + formatDateDisplay(u.date) + '</span>' +
+                     '</div>' +
+                     '<div class="update-content">' + escapeHtml(u.text) + '</div>' +
+                   '</div>';
+          }).join('');
+
           card.innerHTML = 
             '<div style="display: flex; justify-content: space-between; align-items: center;">' +
               '<span class="task-badge" style="background: ' + badgeBg + '; color: ' + badgeColor + '; border: 1px solid ' + badgeColor + ';">' + item.status + '</span>' +
@@ -1256,6 +809,19 @@
             '<div style="font-size: 15px; font-weight: 600; margin: 10px 0 6px 0; color: #fff;">' + (item.type || 'Log Entry') + '</div>' +
             '<div style="font-size: 14px; line-height: 1.5; color: #cbd5e1; white-space: pre-wrap; background: var(--card-bg); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color);">' + (item.remarks || 'No remarks provided.') + '</div>' +
             evidenceHtml +
+
+            /* Progress Updates UI */
+            '<div class="updates-section">' +
+              '<div class="updates-header">Activity & Follow-ups</div>' +
+              '<div class="updates-list" id="updates-list-' + item.rowIndex + '">' +
+                updatesListHtml +
+              '</div>' +
+              '<div class="add-update-container">' +
+                '<input type="text" class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type update note...">' +
+                '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" onclick="addLogUpdate(' + item.rowIndex + ')">Post</button>' +
+              '</div>' +
+            '</div>' +
+
             '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark as Closed</button>';
 
           listDiv.appendChild(card);
@@ -1267,6 +833,64 @@
       script.src = webAppUrl + '?action=getOpenLogs&callback=handleOpenItemsCallback&t=' + Date.now();
       document.body.appendChild(script);
     }
+
+    /* Add Update to an Action Item */
+    window.addLogUpdate = function(rowIndex) {
+      var input = document.getElementById('update-input-' + rowIndex);
+      var updateText = input ? input.value.trim() : '';
+      if (!updateText) return;
+
+      var opNameInput = document.getElementById('active-operator-name');
+      var operatorName = (opNameInput && opNameInput.value.trim()) ? opNameInput.value.trim() : 'Operator';
+      var currentDateIso = new Date().toISOString();
+
+      var btn = document.getElementById('btn-update-' + rowIndex);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Posting...";
+      }
+
+      var payload = {
+        action: "appendLogUpdate",
+        rowIndex: rowIndex,
+        author: operatorName,
+        date: currentDateIso,
+        text: updateText
+      };
+
+      fetch(webAppUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      }).then(function() {
+        // Optimistic DOM append
+        var list = document.getElementById('updates-list-' + rowIndex);
+        if (list) {
+          var bubble = document.createElement('div');
+          bubble.className = 'update-bubble';
+          bubble.innerHTML = 
+            '<div class="update-meta">' +
+              '<span>' + escapeHtml(payload.author) + '</span>' +
+              '<span>' + formatDateDisplay(payload.date) + '</span>' +
+            '</div>' +
+            '<div class="update-content">' + escapeHtml(payload.text) + '</div>';
+          list.appendChild(bubble);
+        }
+
+        if (input) input.value = '';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "Post";
+        }
+      }).catch(function(err) {
+        alert("Failed to post update: " + err.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "Post";
+        }
+      });
+    };
 
     window.closeLogItem = function(rowIndex) {
       if (!confirm("Are you sure you want to mark this item as Closed?")) return;
@@ -1282,7 +906,10 @@
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "closeLogItem", rowIndex: rowIndex })
+        body: JSON.stringify({
+          action: "closeLogItem",
+          rowIndex: rowIndex
+        })
       }).then(function() {
         alert("Item closed. Marked green in Google Sheet.");
         loadOpenItems();
@@ -1295,6 +922,39 @@
         }
       });
     };
+
+    /* Personnel Photo Functions */
+    window.triggerPersonnelCamera = function() {
+      var el = document.getElementById('personnel-camera-input');
+      if (el) el.click();
+    };
+
+    window.triggerPersonnelGallery = function() {
+      var el = document.getElementById('personnel-gallery-input');
+      if (el) el.click();
+    };
+
+    window.removePersonnelPhoto = function() {
+      personnelPhotoBase64 = "";
+      document.getElementById('personnel-img-tag').style.display = "none";
+      document.getElementById('personnel-img-tag').src = "";
+      document.getElementById('personnel-placeholder').style.display = "block";
+      document.getElementById('btn-remove-photo').style.display = "none";
+    };
+
+    function handlePersonnelImage(file) {
+      if (!file) return;
+      toBase64(file).then(function(b64) {
+        personnelPhotoBase64 = b64;
+        var img = document.getElementById('personnel-img-tag');
+        img.src = b64;
+        img.style.display = "block";
+        document.getElementById('personnel-placeholder').style.display = "none";
+        document.getElementById('btn-remove-photo').style.display = "block";
+      }).catch(function(err) {
+        alert("Could not process photo: " + err);
+      });
+    }
 
     /* Recce Triggers & Handlers */
     window.triggerCamera = function() {
@@ -1641,7 +1301,7 @@
         };
       }
 
-      /* Modal Photo Inputs */
+      /* Personnel File Listeners */
       var pCamera = document.getElementById('personnel-camera-input');
       if (pCamera) {
         pCamera.onchange = function(e) {
@@ -1693,7 +1353,7 @@
         };
       }
 
-      /* Modal Form Submission: Target Row Saved */
+      /* Personnel Form Submission */
       var pForm = document.getElementById("personnelForm");
       if (pForm) {
         pForm.onsubmit = function(e) {
@@ -1704,30 +1364,20 @@
             return;
           }
 
-          var targetRowIndex = document.getElementById("p-row-index").value;
           var btn = document.getElementById("personnelSubmitBtn");
           btn.disabled = true;
-          btn.innerText = "Updating Row " + targetRowIndex + "...";
+          btn.innerText = "Transmitting to Roster...";
           btn.style.backgroundColor = "#475569";
 
-          // Enforce English defaults if empty or standard default entered
-          var allergiesVal = document.getElementById("p-allergies").value.trim();
-          if (!allergiesVal || allergiesVal === "Нет" || allergiesVal === "ללא") {
-            allergiesVal = "None";
-          }
-
           var payload = {
-            action: "saveStaffProfile",
-            rowIndex: targetRowIndex,
-            existingPhotoFormula: document.getElementById("p-existing-photo").value,
+            action: "addPersonnel",
             photoBase64: personnelPhotoBase64,
             name: document.getElementById("p-name").value.trim(),
-            nickname: document.getElementById("p-nickname").value.trim(),
             jobTitle: document.getElementById("p-position").value.trim(),
             startDate: document.getElementById("p-startdate").value,
             phone: document.getElementById("p-phone").value.trim(),
             emergency: document.getElementById("p-emergency").value.trim(),
-            allergies: allergiesVal
+            allergies: document.getElementById("p-allergies").value.trim()
           };
 
           fetch(webAppUrl, {
@@ -1736,17 +1386,22 @@
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
           }).then(function() {
-            alert("Row " + targetRowIndex + " successfully updated.");
+            alert("Personnel entry saved successfully.");
             btn.disabled = false;
-            btn.innerText = "Save to Row";
+            btn.innerText = "Save to Personnel Sheet";
             btn.style.backgroundColor = "#0d9488";
-            closeStaffModal();
-            loadStaffRoster();
+            pForm.reset();
+            window.removePersonnelPhoto();
+            var dReset = document.getElementById('p-startdate');
+            if (dReset) dReset.valueAsDate = new Date();
+            window.goBack();
           }).catch(function(err) {
             alert("Upload failed: " + err.message);
             btn.disabled = false;
-            btn.innerText = "Save to Row";
+            btn.innerText = "Save to Personnel Sheet";
             btn.style.backgroundColor = "#0d9488";
+            document.getElementById('personnel-status-message').innerText = "Upload error: " + err;
+            document.getElementById('personnel-status-message').className = "error";
           });
         };
       }
@@ -1895,5 +1550,3 @@
   </script>
 </body>
 </html>
-
-```
