@@ -363,7 +363,6 @@
       vertical-align: middle;
     }
 
-    /* Whole row tap style */
     .staff-row-clickable {
       cursor: pointer;
       transition: background-color 0.15s ease-in-out;
@@ -378,12 +377,11 @@
       background: rgba(255, 255, 255, 0.08);
     }
 
-    /* Phone links should not trigger row edit */
     .staff-phone-link {
       color: #60a5fa;
       text-decoration: none;
       display: inline-block;
-      padding: 4px 6px;
+      padding: 2px 4px;
       border-radius: 4px;
     }
 
@@ -1067,41 +1065,8 @@
     };
 
     /* ==========================================================================
-       STAFF ROSTER: AVATAR POPUPS & ROW EDIT HANDLERS
+       STAFF ROSTER LOGIC
        ========================================================================== */
-    window.handleAvatarClick = function(event, rowIndex, hasPhoto, nickname, name) {
-      // Prevent the row click handler from triggering
-      if (event && event.stopPropagation) {
-        event.stopPropagation();
-      }
-
-      // If there is NO picture, open the edit section directly
-      if (!hasPhoto) {
-        openEditStaffModal(rowIndex);
-        return;
-      }
-
-      // If picture exists, display the floating nickname/callsign bubble
-      var el = event.currentTarget;
-      var existing = el.querySelector('.nickname-speech-bubble');
-      if (existing) {
-        existing.remove();
-        return;
-      }
-
-      document.querySelectorAll('.nickname-speech-bubble').forEach(function(b) { b.remove(); });
-
-      var text = nickname ? ("🏷️ " + nickname) : ("👤 " + name);
-      var bubble = document.createElement('div');
-      bubble.className = 'nickname-speech-bubble';
-      bubble.innerText = text;
-      el.appendChild(bubble);
-
-      setTimeout(function() {
-        if (bubble && bubble.parentNode) bubble.remove();
-      }, 2500);
-    };
-
     function loadStaffRoster() {
       var statusDiv = document.getElementById('staff-status');
       var tbody = document.getElementById('staff-roster-body');
@@ -1126,35 +1091,101 @@
           var tr = document.createElement('tr');
           tr.className = 'staff-row-clickable';
           
-          // Tap anywhere on the row to open edit section
-          tr.onclick = function() {
+          // Tap anywhere on the row to open the edit section
+          tr.addEventListener('click', function(e) {
+            // Prevent triggering edit if a tel: link was clicked
+            if (e.target.closest('a')) return;
             openEditStaffModal(member.rowIndex);
-          };
+          });
 
           var initials = (member.name || "?").substring(0, 2).toUpperCase();
           var hasPhoto = Boolean(member.photoUrl && member.photoUrl.trim() !== "");
 
-          var avatarInnerHtml = hasPhoto
-            ? '<img src="' + member.photoUrl + '" class="staff-avatar-img" alt="' + escapeHtml(member.name) + '" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div class=\\\'staff-avatar-placeholder\\\'>' + initials + '</div>\';">'
-            : '<div class="staff-avatar-placeholder">' + initials + '</div>';
+          // TD 1: Avatar
+          var tdAvatar = document.createElement('td');
+          var avatarWrapper = document.createElement('div');
+          avatarWrapper.className = 'staff-avatar-wrapper';
+          avatarWrapper.title = hasPhoto ? "Tap to view Callsign" : "Tap to Edit";
 
-          var cleanNick = escapeHtml(member.nickname || '').replace(/'/g, "\\'");
-          var cleanName = escapeHtml(member.name || '').replace(/'/g, "\\'");
+          if (hasPhoto) {
+            var img = document.createElement('img');
+            img.src = member.photoUrl;
+            img.className = 'staff-avatar-img';
+            img.alt = member.name || '';
+            img.onerror = function() {
+              this.parentElement.innerHTML = '<div class="staff-avatar-placeholder">' + initials + '</div>';
+            };
+            avatarWrapper.appendChild(img);
+          } else {
+            var placeholder = document.createElement('div');
+            placeholder.className = 'staff-avatar-placeholder';
+            placeholder.innerText = initials;
+            avatarWrapper.appendChild(placeholder);
+          }
 
-          tr.innerHTML = 
-            '<td>' +
-              '<div class="staff-avatar-wrapper" onclick="handleAvatarClick(event, ' + member.rowIndex + ', ' + hasPhoto + ', \'' + cleanNick + '\', \'' + cleanName + '\')" title="' + (hasPhoto ? 'Tap to view Callsign' : 'Tap to Edit') + '">' +
-                avatarInnerHtml +
-              '</div>' +
-            '</td>' +
-            '<td>' +
-              '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>' +
-            '</td>' +
-            '<td>' + escapeHtml(member.position || 'Staff') + '</td>' +
-            '<td>' +
-              (member.phone ? '<a href="tel:' + member.phone + '" class="staff-phone-link" onclick="event.stopPropagation();">📞 ' + escapeHtml(member.phone) + '</a>' : '—') +
-            '</td>' +
-            '<td style="font-size: 12px; color: #cbd5e1;">' + escapeHtml(member.emergency || '—') + '</td>';
+          // Avatar Tap Handler:
+          // If photo -> show speech bubble.
+          // If NO photo -> open edit modal.
+          avatarWrapper.addEventListener('click', function(e) {
+            e.stopPropagation();
+
+            if (!hasPhoto) {
+              openEditStaffModal(member.rowIndex);
+              return;
+            }
+
+            var existing = avatarWrapper.querySelector('.nickname-speech-bubble');
+            if (existing) {
+              existing.remove();
+              return;
+            }
+
+            document.querySelectorAll('.nickname-speech-bubble').forEach(function(b) { b.remove(); });
+
+            var displayText = member.nickname ? ("🏷️ " + member.nickname) : ("👤 " + (member.name || 'Staff'));
+            var bubble = document.createElement('div');
+            bubble.className = 'nickname-speech-bubble';
+            bubble.innerText = displayText;
+            avatarWrapper.appendChild(bubble);
+
+            setTimeout(function() {
+              if (bubble && bubble.parentNode) bubble.remove();
+            }, 2500);
+          });
+
+          tdAvatar.appendChild(avatarWrapper);
+          tr.appendChild(tdAvatar);
+
+          // TD 2: Name (clean, nickname badge removed)
+          var tdName = document.createElement('td');
+          tdName.innerHTML = '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>';
+          tr.appendChild(tdName);
+
+          // TD 3: Role
+          var tdRole = document.createElement('td');
+          tdRole.innerText = member.position || 'Staff';
+          tr.appendChild(tdRole);
+
+          // TD 4: Contact
+          var tdContact = document.createElement('td');
+          if (member.phone) {
+            var aPhone = document.createElement('a');
+            aPhone.href = 'tel:' + member.phone;
+            aPhone.className = 'staff-phone-link';
+            aPhone.innerText = '📞 ' + member.phone;
+            aPhone.addEventListener('click', function(e) { e.stopPropagation(); });
+            tdContact.appendChild(aPhone);
+          } else {
+            tdContact.innerText = '—';
+          }
+          tr.appendChild(tdContact);
+
+          // TD 5: Emergency Contact
+          var tdEmerg = document.createElement('td');
+          tdEmerg.style.fontSize = '12px';
+          tdEmerg.style.color = '#cbd5e1';
+          tdEmerg.innerText = member.emergency || '—';
+          tr.appendChild(tdEmerg);
 
           tbody.appendChild(tr);
         });
@@ -1898,4 +1929,97 @@
             lng: venueCoords ? venueCoords.lng : "0",
             parkingLat: parkingCoords ? parkingCoords.lat : "",
             parkingLng: parkingCoords ? parkingCoords.lng : "",
-            photos:
+            photos: reccePhotos
+          };
+
+          fetch(webAppUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+          }).then(function() {
+            alert("Report submitted successfully.");
+            btn.disabled = false;
+            btn.innerText = "Generate & Submit Recce PDF";
+            btn.style.backgroundColor = "#7c3aed";
+            document.getElementById("recceForm").reset();
+            window.clearLocation();
+            reccePhotos = [];
+            var previewGrid = document.getElementById("photo-preview-grid");
+            if (previewGrid) previewGrid.innerHTML = "";
+            var countDisplay = document.getElementById("photo-count");
+            if (countDisplay) countDisplay.innerText = "0 photos attached";
+            var dRecce = document.getElementById('recce-date');
+            if (dRecce) dRecce.valueAsDate = new Date();
+            window.goBack();
+          }).catch(function(err) {
+            alert("Network error: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "Generate & Submit Recce PDF";
+            btn.style.backgroundColor = "#7c3aed";
+            document.getElementById('recce-status-message').innerText = "Upload error: " + err;
+            document.getElementById('recce-status-message').className = "error";
+          });
+        };
+      }
+
+      var logForm = document.getElementById("logForm");
+      if (logForm) {
+        logForm.onsubmit = function(event) {
+          event.preventDefault();
+          var logConfirm = document.getElementById("log-confirm-checkbox");
+          if (!logConfirm.checked) {
+            alert("Please confirm the entry before submitting.");
+            return;
+          }
+
+          var confirmed = confirm("Submit this log entry?");
+          if (!confirmed) return;
+
+          var btn = document.getElementById("submitBtn");
+          btn.disabled = true;
+          btn.innerText = "Uploading...";
+          btn.style.backgroundColor = "#475569";
+
+          var payload = {
+            formType: "Log",
+            column2: document.getElementById("name").value,
+            column3: document.getElementById("date").value,
+            column4: document.getElementById("type").value,
+            column5: document.getElementById("remarks").value,
+            column6: document.getElementById("status").value,
+            column7: document.getElementById("evidence").value,
+            imageBase64: base64Image,
+            fileName: fileName,
+            mimeType: mimeType
+          };
+
+          fetch(webAppUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+          }).then(function() {
+            alert("Log entry submitted.");
+            btn.disabled = false;
+            btn.innerText = "Submit Log Entry";
+            btn.style.backgroundColor = "#2563eb";
+            document.getElementById("logForm").reset();
+            var dLog = document.getElementById('date');
+            if (dLog) dLog.valueAsDate = new Date();
+            base64Image = ""; fileName = ""; mimeType = "";
+            window.goBack();
+          }).catch(function(err) {
+            alert("Log error: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "Submit Log Entry";
+            btn.style.backgroundColor = "#2563eb";
+            document.getElementById('status-message').innerText = "Error sending data.";
+            document.getElementById('status-message').className = "error";
+          });
+        };
+      }
+    };
+  </script>
+</body>
+</html>
