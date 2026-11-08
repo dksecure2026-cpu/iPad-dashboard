@@ -303,11 +303,16 @@
     }
     .add-update-container {
       display: flex;
+      flex-direction: column;
       gap: 8px;
-      margin-top: 6px;
+      margin-top: 8px;
+      background: rgba(0,0,0,0.15);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05);
     }
     .update-input-field {
-      flex: 1;
+      width: 100%;
       padding: 10px 12px;
       font-size: 13px;
       background: var(--card-bg);
@@ -316,7 +321,7 @@
       color: #ffffff;
     }
     .btn-add-update {
-      padding: 0 16px;
+      padding: 10px 16px;
       background-color: #2563eb;
       color: #ffffff;
       border: none;
@@ -325,6 +330,48 @@
       font-size: 13px;
       cursor: pointer;
       white-space: nowrap;
+    }
+
+    /* Action Item Review File Upload Controls */
+    .item-file-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .item-file-btn:active { filter: brightness(0.9); }
+    .item-file-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .item-attachment-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e242d;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #60a5fa;
+      max-width: 100%;
+    }
+    .item-pill-remove {
+      background: none;
+      border: none;
+      color: #f87171;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 2px;
+      font-size: 12px;
+      line-height: 1;
     }
 
     /* ==========================================================================
@@ -773,7 +820,6 @@
 
       <!-- Hidden inputs for file browsing & direct camera capture -->
       <input type="file" id="log-camera-input" accept="image/*" capture="environment" style="display: none;">
-      <!-- Accepts photos, PDFs, Word, Excel, and text documents -->
       <input type="file" id="log-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display: none;">
 
       <!-- Selected File Confirmation / Clear Bar -->
@@ -885,6 +931,9 @@
     var reccePhotos = [];
     var personnelPhotoBase64 = "";
     var staffRosterCache = [];
+
+    // Track active file attachments per Open Action Item: { [rowIndex]: Array<{ name, mimeType, base64 }> }
+    var itemAttachmentsMap = {};
 
     var recceMap = null;
     var currentPinMode = 'venue';
@@ -1345,13 +1394,119 @@
     };
 
     /* ==========================================================================
-       OPEN ACTION ITEMS HANDLERS
+       OPEN ACTION ITEMS HANDLERS & MULTI-FILE UPLOADS (UP TO 3)
        ========================================================================== */
+    window.triggerActionCamera = function(rowIndex) {
+      var cam = document.getElementById('action-camera-input-' + rowIndex);
+      if (cam) {
+        cam.value = "";
+        cam.click();
+      }
+    };
+
+    window.triggerActionFilePicker = function(rowIndex) {
+      var picker = document.getElementById('action-file-input-' + rowIndex);
+      if (picker) {
+        picker.value = "";
+        picker.click();
+      }
+    };
+
+    window.handleActionFiles = function(rowIndex, fileList) {
+      if (!fileList || fileList.length === 0) return;
+      if (!itemAttachmentsMap[rowIndex]) itemAttachmentsMap[rowIndex] = [];
+
+      var current = itemAttachmentsMap[rowIndex];
+      var remaining = 3 - current.length;
+
+      if (remaining <= 0) {
+        alert("Maximum of 3 attachments reached for this update.");
+        return;
+      }
+
+      var incoming = Array.from(fileList).slice(0, remaining);
+
+      incoming.forEach(function(file) {
+        if (file.type && file.type.startsWith('image/')) {
+          toBase64(file).then(function(b64WithHeader) {
+            var rawB64 = b64WithHeader.split(',')[1];
+            current.push({
+              name: file.name || ('photo_' + Date.now() + '.jpg'),
+              mimeType: 'image/jpeg',
+              base64: rawB64
+            });
+            renderActionAttachments(rowIndex);
+          }).catch(function(err) {
+            console.error("Camera image conversion error:", err);
+          });
+        } else {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            var rawB64 = e.target.result.split(',')[1];
+            current.push({
+              name: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              base64: rawB64
+            });
+            renderActionAttachments(rowIndex);
+          };
+          reader.onerror = function() {
+            alert("Failed to read file: " + file.name);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    };
+
+    window.removeActionAttachment = function(rowIndex, index) {
+      if (!itemAttachmentsMap[rowIndex]) return;
+      itemAttachmentsMap[rowIndex].splice(index, 1);
+      renderActionAttachments(rowIndex);
+    };
+
+    function renderActionAttachments(rowIndex) {
+      var container = document.getElementById('action-attachments-' + rowIndex);
+      var counter = document.getElementById('action-file-count-' + rowIndex);
+      var btnCam = document.getElementById('btn-action-cam-' + rowIndex);
+      var btnFile = document.getElementById('btn-action-file-' + rowIndex);
+
+      var files = itemAttachmentsMap[rowIndex] || [];
+      if (counter) counter.innerText = files.length + " / 3 attached";
+
+      var isFull = files.length >= 3;
+      if (btnCam) btnCam.disabled = isFull;
+      if (btnFile) btnFile.disabled = isFull;
+
+      if (!container) return;
+      container.innerHTML = "";
+
+      files.forEach(function(item, idx) {
+        var pill = document.createElement('div');
+        pill.className = 'item-attachment-pill';
+
+        var icon = item.mimeType.startsWith('image/') ? '🖼️' : '📄';
+        var nameSpan = document.createElement('span');
+        nameSpan.innerText = icon + ' ' + (item.name.length > 20 ? (item.name.substring(0, 18) + '...') : item.name);
+        nameSpan.title = item.name;
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'item-pill-remove';
+        removeBtn.innerText = '✕';
+        removeBtn.onclick = function() { window.removeActionAttachment(rowIndex, idx); };
+
+        pill.appendChild(nameSpan);
+        pill.appendChild(removeBtn);
+        container.appendChild(pill);
+      });
+    }
+
     function loadOpenItems() {
       var statusDiv = document.getElementById('open-items-status');
       var listDiv = document.getElementById('open-items-list');
       statusDiv.innerText = "Checking active items...";
       listDiv.innerHTML = "";
+      itemAttachmentsMap = {}; // Reset attachment storage on reload
 
       var scriptId = 'jsonp-open-items';
       var oldScript = document.getElementById(scriptId);
@@ -1386,12 +1541,22 @@
           }
 
           var updatesListHtml = updates.map(function(u) {
+            var updateAttHtml = '';
+            if (u.attachments && Array.isArray(u.attachments) && u.attachments.length > 0) {
+              updateAttHtml = '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">' +
+                u.attachments.map(function(att) {
+                  return '<a href="' + (att.url || '#') + '" target="_blank" style="font-size:11px; color:#60a5fa; text-decoration:none; background:rgba(96,165,250,0.1); padding:2px 6px; border-radius:4px; border:1px solid #3b82f6;">📎 ' + escapeHtml(att.name || 'Attachment') + '</a>';
+                }).join('') +
+              '</div>';
+            }
+
             return '<div class="update-bubble">' +
                      '<div class="update-meta">' +
                        '<span>' + escapeHtml(u.author || 'Operator') + '</span>' +
                        '<span>' + formatDateDisplay(u.date) + '</span>' +
                      '</div>' +
                      '<div class="update-content">' + escapeHtml(u.text) + '</div>' +
+                     updateAttHtml +
                    '</div>';
           }).join('');
 
@@ -1409,8 +1574,22 @@
                 updatesListHtml +
               '</div>' +
               '<div class="add-update-container">' +
-                '<input type="text" class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type update note...">' +
-                '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" onclick="addLogUpdate(' + item.rowIndex + ')">Post</button>' +
+                '<textarea class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type update note or resolution progress..." rows="2" style="min-height: 60px;"></textarea>' +
+                
+                '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">' +
+                  '<div style="display: flex; gap: 6px; flex: 1;">' +
+                    '<button type="button" class="item-file-btn" id="btn-action-cam-' + item.rowIndex + '" style="background-color: #16a34a;" onclick="triggerActionCamera(' + item.rowIndex + ')">📷 Take Photo</button>' +
+                    '<button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color: #2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Upload Doc</button>' +
+                  '</div>' +
+                  '<span id="action-file-count-' + item.rowIndex + '" style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">0 / 3 attached</span>' +
+                '</div>' +
+
+                '<input type="file" id="action-camera-input-' + item.rowIndex + '" accept="image/*" capture="environment" style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
+                '<input type="file" id="action-file-input-' + item.rowIndex + '" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
+
+                '<div id="action-attachments-' + item.rowIndex + '" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>' +
+
+                '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" style="margin-top: 4px;" onclick="addLogUpdate(' + item.rowIndex + ')">Post Note Update</button>' +
               '</div>' +
             '</div>' +
             '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark as Closed</button>';
@@ -1428,7 +1607,12 @@
     window.addLogUpdate = function(rowIndex) {
       var input = document.getElementById('update-input-' + rowIndex);
       var updateText = input ? input.value.trim() : '';
-      if (!updateText) return;
+      var attachments = itemAttachmentsMap[rowIndex] || [];
+
+      if (!updateText && attachments.length === 0) {
+        alert("Please enter a note or attach files before posting.");
+        return;
+      }
 
       var opNameInput = document.getElementById('active-operator-name');
       var operatorName = (opNameInput && opNameInput.value.trim()) ? opNameInput.value.trim() : 'Operator';
@@ -1437,7 +1621,7 @@
       var btn = document.getElementById('btn-update-' + rowIndex);
       if (btn) {
         btn.disabled = true;
-        btn.innerText = "Posting...";
+        btn.innerText = "Posting & Uploading (" + attachments.length + " files)...";
       }
 
       var payload = {
@@ -1445,7 +1629,8 @@
         rowIndex: rowIndex,
         author: operatorName,
         date: currentDateIso,
-        text: updateText
+        text: updateText,
+        attachments: attachments
       };
 
       fetch(webAppUrl, {
@@ -1458,24 +1643,40 @@
         if (list) {
           var bubble = document.createElement('div');
           bubble.className = 'update-bubble';
+
+          var attPreview = '';
+          if (attachments.length > 0) {
+            attPreview = '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">' +
+              attachments.map(function(att) {
+                return '<span style="font-size:11px; color:#60a5fa; background:rgba(96,165,250,0.1); padding:2px 6px; border-radius:4px; border:1px solid #3b82f6;">📎 ' + escapeHtml(att.name) + ' (Uploaded)</span>';
+              }).join('') +
+            '</div>';
+          }
+
           bubble.innerHTML = 
             '<div class="update-meta">' +
               '<span>' + escapeHtml(payload.author) + '</span>' +
               '<span>' + formatDateDisplay(payload.date) + '</span>' +
             '</div>' +
-            '<div class="update-content">' + escapeHtml(payload.text) + '</div>';
+            '<div class="update-content">' + escapeHtml(payload.text) + '</div>' +
+            attPreview;
           list.appendChild(bubble);
         }
+
+        // Reset note input & active attachments
         if (input) input.value = '';
+        itemAttachmentsMap[rowIndex] = [];
+        renderActionAttachments(rowIndex);
+
         if (btn) {
           btn.disabled = false;
-          btn.innerText = "Post";
+          btn.innerText = "Post Note Update";
         }
       }).catch(function(err) {
         alert("Failed to post update: " + err.message);
         if (btn) {
           btn.disabled = false;
-          btn.innerText = "Post";
+          btn.innerText = "Post Note Update";
         }
       });
     };
