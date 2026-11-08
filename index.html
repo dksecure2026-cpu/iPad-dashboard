@@ -732,19 +732,30 @@
     </div>
 
     <form id="logForm">
+      <!-- Officer Name Dropdown -->
       <label for="name">Officer Name</label>
-      <input type="text" id="name" required>
+      <select id="name" required>
+        <option value="" disabled selected>Select Officer...</option>
+        <option value="Miki Tofts">Miki Tofts</option>
+        <option value="Jeremy Page">Jeremy Page</option>
+        <option value="Ryan Dooley">Ryan Dooley</option>
+        <option value="Matthew Camilleri">Matthew Camilleri</option>
+      </select>
 
       <label for="date">Date</label>
       <input type="date" id="date" required>
 
+      <!-- Log Type Dropdown with Title Change -->
       <label for="type">Log Type</label>
-      <select id="type" required>
-        <option value="Security Log">Security Log</option>
+      <select id="type" required onchange="handleLogTypeChange(this.value)">
+        <option value="Security Log" selected>Security Log</option>
+        <option value="Incident Report">Incident Report</option>
+        <option value="Firearms Log">Firearms Log</option>
+        <option value="Operational Task">Operational Task</option>
       </select>
 
       <label for="remarks">Remarks / Details</label>
-      <textarea id="remarks" required></textarea>
+      <textarea id="remarks" placeholder="Enter log entry details..." required></textarea>
 
       <label for="status">Status</label>
       <select id="status" required>
@@ -753,8 +764,24 @@
         <option value="Closed">Closed</option>
       </select>
 
-      <label>Supporting Evidence / Photo</label>
-      <input type="file" id="photo-upload" accept="image/*">
+      <!-- File Attachment & Direct Camera Capture -->
+      <label>Supporting Evidence / Documents</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerLogCamera()">📷 Take Photo</button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerLogFile()">📁 Upload File / Doc</button>
+      </div>
+
+      <!-- Hidden inputs for file browsing & direct camera capture -->
+      <input type="file" id="log-camera-input" accept="image/*" capture="environment" style="display: none;">
+      <!-- Accepts photos, PDFs, Word, Excel, and text documents -->
+      <input type="file" id="log-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display: none;">
+
+      <!-- Selected File Confirmation / Clear Bar -->
+      <div id="log-file-status" style="display: none; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; margin-top: 6px; align-items: center; justify-content: space-between;">
+        <span id="log-file-name" style="font-size: 13px; color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;"></span>
+        <button type="button" onclick="clearLogFile()" style="background: none; border: none; color: #f87171; font-weight: bold; font-size: 14px; cursor: pointer;">✕ Remove</button>
+      </div>
+
       <div class="divider">- OR PASTE WEB LINK -</div>
       <input type="text" id="evidence" placeholder="https://...">
 
@@ -1023,8 +1050,11 @@
     window.openForm = function(entryType) {
       window.hideAllViews();
       document.getElementById('form-view').style.display = 'block';
-      document.getElementById('type').value = entryType;
-      document.getElementById('form-title').innerText = entryType;
+      
+      var chosenType = entryType || 'Security Log';
+      var typeSelect = document.getElementById('type');
+      if (typeSelect) typeSelect.value = chosenType;
+      document.getElementById('form-title').innerText = chosenType;
     };
 
     window.openOpenItems = function() {
@@ -1065,6 +1095,68 @@
     };
 
     /* ==========================================================================
+       SECURITY LOG FILE, CAMERA & TYPE HELPERS
+       ========================================================================== */
+    window.handleLogTypeChange = function(newType) {
+      document.getElementById('form-title').innerText = newType;
+    };
+
+    window.triggerLogCamera = function() {
+      var cam = document.getElementById('log-camera-input');
+      if (cam) cam.click();
+    };
+
+    window.triggerLogFile = function() {
+      var fi = document.getElementById('log-file-input');
+      if (fi) fi.click();
+    };
+
+    window.clearLogFile = function() {
+      base64Image = "";
+      fileName = "";
+      mimeType = "";
+      var cam = document.getElementById('log-camera-input');
+      var fi = document.getElementById('log-file-input');
+      if (cam) cam.value = "";
+      if (fi) fi.value = "";
+      var st = document.getElementById('log-file-status');
+      var nm = document.getElementById('log-file-name');
+      if (st) st.style.display = "none";
+      if (nm) nm.innerText = "";
+    };
+
+    function processSelectedLogFile(file) {
+      if (!file) return;
+
+      fileName = file.name;
+      mimeType = file.type || "application/octet-stream";
+
+      var statusBox = document.getElementById('log-file-status');
+      var nameSpan = document.getElementById('log-file-name');
+
+      if (file.type && file.type.startsWith('image/')) {
+        toBase64(file).then(function(b64WithHeader) {
+          base64Image = b64WithHeader.split(',')[1];
+          if (nameSpan) nameSpan.innerText = "📷 " + fileName;
+          if (statusBox) statusBox.style.display = "flex";
+        }).catch(function(err) {
+          alert("Error processing photo: " + err);
+        });
+      } else {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          base64Image = e.target.result.split(',')[1];
+          if (nameSpan) nameSpan.innerText = "📄 " + fileName;
+          if (statusBox) statusBox.style.display = "flex";
+        };
+        reader.onerror = function() {
+          alert("Failed to read selected file.");
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    /* ==========================================================================
        STAFF ROSTER LOGIC
        ========================================================================== */
     function loadStaffRoster() {
@@ -1091,9 +1183,7 @@
           var tr = document.createElement('tr');
           tr.className = 'staff-row-clickable';
           
-          // Tap anywhere on the row to open the edit section
           tr.addEventListener('click', function(e) {
-            // Prevent triggering edit if a tel: link was clicked
             if (e.target.closest('a')) return;
             openEditStaffModal(member.rowIndex);
           });
@@ -1101,7 +1191,6 @@
           var initials = (member.name || "?").substring(0, 2).toUpperCase();
           var hasPhoto = Boolean(member.photoUrl && member.photoUrl.trim() !== "");
 
-          // TD 1: Avatar
           var tdAvatar = document.createElement('td');
           var avatarWrapper = document.createElement('div');
           avatarWrapper.className = 'staff-avatar-wrapper';
@@ -1123,9 +1212,6 @@
             avatarWrapper.appendChild(placeholder);
           }
 
-          // Avatar Tap Handler:
-          // If photo -> show speech bubble.
-          // If NO photo -> open edit modal.
           avatarWrapper.addEventListener('click', function(e) {
             e.stopPropagation();
 
@@ -1156,17 +1242,14 @@
           tdAvatar.appendChild(avatarWrapper);
           tr.appendChild(tdAvatar);
 
-          // TD 2: Name (clean, nickname badge removed)
           var tdName = document.createElement('td');
           tdName.innerHTML = '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>';
           tr.appendChild(tdName);
 
-          // TD 3: Role
           var tdRole = document.createElement('td');
           tdRole.innerText = member.position || 'Staff';
           tr.appendChild(tdRole);
 
-          // TD 4: Contact
           var tdContact = document.createElement('td');
           if (member.phone) {
             var aPhone = document.createElement('a');
@@ -1180,7 +1263,6 @@
           }
           tr.appendChild(tdContact);
 
-          // TD 5: Emergency Contact
           var tdEmerg = document.createElement('td');
           tdEmerg.style.fontSize = '12px';
           tdEmerg.style.color = '#cbd5e1';
@@ -1758,17 +1840,18 @@
       var d2 = document.getElementById('recce-date');
       if (d2) d2.valueAsDate = new Date();
 
-      var singlePhoto = document.getElementById('photo-upload');
-      if (singlePhoto) {
-        singlePhoto.onchange = function(e) {
-          var file = e.target.files[0];
-          if (file) {
-            fileName = file.name;
-            mimeType = file.type;
-            var reader = new FileReader();
-            reader.onload = function(ev) { base64Image = ev.target.result.split(',')[1]; };
-            reader.readAsDataURL(file);
-          }
+      // Listeners for Log Camera & Device File upload
+      var logCam = document.getElementById('log-camera-input');
+      if (logCam) {
+        logCam.onchange = function(e) {
+          if (e.target.files.length > 0) processSelectedLogFile(e.target.files[0]);
+        };
+      }
+
+      var logFiles = document.getElementById('log-file-input');
+      if (logFiles) {
+        logFiles.onchange = function(e) {
+          if (e.target.files.length > 0) processSelectedLogFile(e.target.files[0]);
         };
       }
 
@@ -2005,9 +2088,10 @@
             btn.innerText = "Submit Log Entry";
             btn.style.backgroundColor = "#2563eb";
             document.getElementById("logForm").reset();
+            window.clearLogFile();
+            document.getElementById('form-title').innerText = "Security Log";
             var dLog = document.getElementById('date');
             if (dLog) dLog.valueAsDate = new Date();
-            base64Image = ""; fileName = ""; mimeType = "";
             window.goBack();
           }).catch(function(err) {
             alert("Log error: " + err.message);
