@@ -1,1210 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WHITEBANNER - Operations Dashboard</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    :root {
-      --bg-base: #1e2229;
-      --card-bg: #282d36;
-      --panel-bg: #1f232b;
-      --border-color: #3b424e;
-      --border-light: #4c5565;
-      --text-main: #ffffff;
-      --text-secondary: #a4b0be;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-base);
-      background-image: radial-gradient(circle at 50% 0%, rgba(60, 70, 85, 0.3) 0%, transparent 70%);
-      padding: 16px;
-      display: flex;
-      justify-content: center;
-      margin: 0;
-      color: var(--text-main);
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      width: 100%;
-      max-width: 580px;
-      position: relative;
-    }
-
-    .wide-card { max-width: 900px; }
-
-    /* Header & Logo */
-    .brand-header {
-      text-align: center;
-      margin-bottom: 22px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 18px;
-    }
-
-    .brand-logo-img {
-      max-height: 82px;
-      width: auto;
-      object-fit: contain;
-      filter: invert(1) brightness(1.2);
-      margin-bottom: 8px;
-    }
-
-    .status-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 500;
-      letter-spacing: 0.5px;
-    }
-
-    .sys-beacon {
-      color: #34d399;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-weight: 600;
-      font-size: 12px;
-    }
-
-    .sys-beacon::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      background: #34d399;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
-    }
-
-    /* Dashboard Navigation Buttons */
-    .dash-btn {
-      width: 100%;
-      padding: 16px 20px;
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      -webkit-appearance: none;
-      transition: all 0.12s ease-in-out;
-      font-family: inherit;
-    }
-
-    .dash-btn:active {
-      transform: scale(0.99);
-      filter: brightness(0.9);
-    }
-
-    .dash-btn-sub {
-      font-size: 13px;
-      opacity: 0.85;
-      font-weight: 400;
-      color: #e2e8f0;
-    }
-
-    .btn-sec-log { background: #3a424e; border-left: 6px solid #64748b; }
-    .btn-action-items { background: #c25e00; border-left: 6px solid #fb923c; }
-    .btn-personnel { background: #0f766e; border-left: 6px solid #14b8a6; }
-    .btn-recce { background: #6d28d9; border-left: 6px solid #a78bfa; }
-    .btn-recce-folder { background: #4338ca; border-left: 6px solid #818cf8; }
-    .btn-calendar { background: #1d4ed8; border-left: 6px solid #60a5fa; }
-    .btn-map { background: #15803d; border-left: 6px solid #4ade80; }
-
-    /* General Controls */
-    .back-btn {
-      padding: 9px 16px;
-      background-color: var(--panel-bg);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 14px;
-      margin-bottom: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      -webkit-appearance: none;
-      font-family: inherit;
-    }
-    .back-btn:hover { color: #fff; background-color: #2b313c; }
-
-    label {
-      font-weight: 600;
-      display: block;
-      margin-top: 16px;
-      margin-bottom: 6px;
-      color: #cbd5e1;
-      font-size: 13px;
-      letter-spacing: 0.3px;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 12px 14px;
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 15px;
-      color: #ffffff;
-      box-sizing: border-box;
-      font-family: inherit;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-    }
-
-    textarea { resize: vertical; min-height: 95px; }
-    input[type="file"] { padding: 10px; background: var(--panel-bg); border: 1px dashed var(--border-light); color: var(--text-secondary); }
-
-    .submit-btn {
-      width: 100%;
-      padding: 16px;
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      margin-top: 20px;
-      cursor: pointer;
-      -webkit-appearance: none;
-      font-family: inherit;
-    }
-
-    #form-view, #calendar-view, #map-view, #recce-view, #open-items-view, #personnel-view, #recce-folder-view { display: none; }
-    #status-message, #recce-status-message, #staff-status, #recce-folder-status { text-align: center; margin-top: 14px; font-weight: 600; font-size: 14px; }
-    .error { color: #f87171; }
-    .divider { text-align: center; margin: 12px 0; font-weight: 600; color: var(--text-secondary); font-size: 12px; }
-
-    iframe { border: 1px solid var(--border-color); border-radius: 8px; }
-    #recce-map-container { height: 350px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; cursor: crosshair; }
-
-    .coord-display {
-      font-size: 13px;
-      color: #cbd5e1;
-      margin-top: 8px;
-      line-height: 1.6;
-      background: var(--panel-bg);
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      border-left: 4px solid #60a5fa;
-    }
-
-    .confirm-box {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 14px;
-      margin-top: 20px;
-    }
-    .confirm-label {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      cursor: pointer;
-      font-size: 13px;
-      color: #e2e8f0;
-      font-weight: 500;
-      line-height: 1.4;
-    }
-    .confirm-label input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: #2563eb; }
-
-    /* Open Action Item Card */
-    .task-card {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-left: 4px solid #fb923c;
-      border-radius: 8px;
-      padding: 18px;
-      margin-bottom: 16px;
-    }
-    .task-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .close-item-btn {
-      width: 100%;
-      padding: 12px;
-      background-color: #15803d;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 14px;
-      margin-top: 14px;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    /* Updates Timeline */
-    .updates-section {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .updates-header {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-    .updates-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-    .update-bubble {
-      background: rgba(0, 0, 0, 0.25);
-      border-left: 3px solid #60a5fa;
-      border-radius: 0 6px 6px 0;
-      padding: 8px 12px;
-    }
-    .update-meta {
-      font-size: 11px;
-      color: #94a3b8;
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .update-content {
-      font-size: 13px;
-      color: #f1f5f9;
-      line-height: 1.4;
-      white-space: pre-wrap;
-    }
-    .add-update-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-      background: rgba(0,0,0,0.15);
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .update-input-field {
-      width: 100%;
-      padding: 10px 12px;
-      font-size: 13px;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      color: #ffffff;
-    }
-    .btn-add-update {
-      padding: 10px 16px;
-      background-color: #2563eb;
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 13px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    /* Action Item Review File Upload Controls */
-    .item-file-btn {
-      flex: 1;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      color: #ffffff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-family: inherit;
-    }
-    .item-file-btn:active { filter: brightness(0.9); }
-    .item-file-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .item-attachment-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #1e242d;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 11px;
-      color: #60a5fa;
-      max-width: 100%;
-    }
-    .item-pill-remove {
-      background: none;
-      border: none;
-      color: #f87171;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 0 2px;
-      font-size: 12px;
-      line-height: 1;
-    }
-
-    /* Staff Roster Styling (76px Square) */
-    .roster-table-container {
-      width: 100%;
-      overflow-x: auto;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: var(--panel-bg);
-    }
-
-    .roster-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 13px;
-    }
-
-    .roster-table th {
-      background: #181b21;
-      color: var(--text-secondary);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-
-    .roster-table td {
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      color: #e2e8f0;
-      vertical-align: middle;
-    }
-
-    .staff-row-clickable {
-      cursor: pointer;
-      transition: background-color 0.15s ease-in-out;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .staff-row-clickable:hover {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .staff-row-clickable:active {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .staff-phone-link {
-      color: #60a5fa;
-      text-decoration: none;
-      display: inline-block;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-
-    .staff-phone-link:active {
-      background: rgba(96, 165, 250, 0.2);
-    }
-
-    .staff-avatar-wrapper {
-      position: relative;
-      display: inline-block;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .staff-avatar-img {
-      width: 76px;
-      height: 76px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 2px solid #3b82f6;
-      background: var(--card-bg);
-      display: block;
-      transition: transform 0.15s ease, border-color 0.15s ease;
-    }
-
-    .staff-avatar-wrapper:active .staff-avatar-img {
-      transform: scale(0.95);
-      border-color: #60a5fa;
-    }
-
-    .staff-avatar-placeholder {
-      width: 76px;
-      height: 76px;
-      border-radius: 8px;
-      background: #334155;
-      color: #94a3b8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 18px;
-      border: 2px solid #475569;
-      transition: transform 0.15s ease;
-    }
-
-    .staff-avatar-wrapper:active .staff-avatar-placeholder {
-      transform: scale(0.95);
-    }
-
-    .nickname-speech-bubble {
-      position: absolute;
-      bottom: calc(100% + 10px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e3a8a;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 12px;
-      padding: 6px 12px;
-      border-radius: 8px;
-      white-space: nowrap;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-      border: 1px solid #60a5fa;
-      z-index: 1000;
-      pointer-events: none;
-      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .nickname-speech-bubble::after {
-      content: "";
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 6px;
-      border-style: solid;
-      border-color: #1e3a8a transparent transparent transparent;
-    }
-
-    @keyframes popIn {
-      from { opacity: 0; transform: translate(-50%, 8px) scale(0.85); }
-      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
-    }
-
-    /* Modal and Language Bar */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      padding: 16px;
-    }
-
-    .modal-content {
-      max-height: 90vh;
-      overflow-y: auto;
-      width: 100%;
-      max-width: 520px;
-    }
-
-    .lang-selector-bar {
-      display: flex;
-      background: var(--panel-bg);
-      padding: 4px;
-      border-radius: 8px;
-      gap: 4px;
-      border: 1px solid var(--border-color);
-      margin-bottom: 14px;
-    }
-
-    .lang-tab {
-      flex: 1;
-      background: transparent;
-      color: var(--text-secondary);
-      border: none;
-      border-radius: 6px;
-      padding: 7px 0;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .lang-tab.active {
-      background: #2563eb;
-      color: #ffffff;
-    }
-
-    .rtl-mode {
-      direction: rtl;
-      text-align: right;
-    }
-    .rtl-mode input, .rtl-mode label {
-      text-align: right;
-    }
-
-    .personnel-photo-box {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      background: var(--panel-bg);
-      border: 1px dashed var(--border-light);
-      border-radius: 8px;
-      padding: 14px;
-      margin-top: 6px;
-    }
-
-    .personnel-preview {
-      width: 90px;
-      height: 110px;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      flex-shrink: 0;
-      position: relative;
-    }
-
-    .personnel-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Emergency Hospital Quick Route Bar */
-    .emergency-hospital-panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-    }
-
-    .btn-emergency-action {
-      width: 100%;
-      min-height: 48px;
-      background: #b91c1c;
-      color: #ffffff;
-      border: 1px solid #ef4444;
-      border-radius: 6px;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: filter 0.15s ease, transform 0.15s ease;
-      font-family: inherit;
-    }
-
-    .btn-emergency-action:active {
-      filter: brightness(0.85);
-      transform: scale(0.99);
-    }
-
-    .btn-emergency-action:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .nav-shortcut-btn {
-      padding: 10px 12px;
-      color: #ffffff;
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: none;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-    }
-
-    .nav-shortcut-btn:active {
-      filter: brightness(0.9);
-    }
-
-    /* ==========================================
-       RECCE REPORT FOLDER & LARGE BUTTON GRID
-       ========================================== */
-    .recce-folder-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 14px;
-      margin-top: 14px;
-    }
-
-    .recce-folder-card {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-left: 6px solid #818cf8;
-      border-radius: 10px;
-      padding: 20px 16px;
-      min-height: 86px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-      text-align: left;
-      color: #ffffff;
-      user-select: none;
-      -webkit-appearance: none;
-      font-family: inherit;
-    }
-
-    .recce-folder-card:active {
-      transform: scale(0.98);
-      background: #2b3342;
-      border-left-color: #6366f1;
-    }
-
-    .recce-folder-icon {
-      font-size: 24px;
-      flex-shrink: 0;
-    }
-
-    .recce-folder-label {
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1.35;
-      color: #f8fafc;
-      word-break: break-word;
-    }
-
-    /* Embedded Full-Screen PDF Viewer */
-    .recce-viewer-overlay {
-      position: fixed;
-      inset: 0;
-      background: #0f172a;
-      z-index: 10000;
-      display: flex;
-      flex-direction: column;
-      width: 100vw;
-      height: 100vh;
-      box-sizing: border-box;
-    }
-
-    .recce-viewer-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 16px;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
-      height: 60px;
-      flex-shrink: 0;
-    }
-
-    .recce-viewer-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      overflow: hidden;
-    }
-
-    .recce-viewer-meta h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #f8fafc;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 50vw;
-    }
-
-    .recce-viewer-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .recce-btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #334155;
-      color: #f1f5f9;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 8px 14px;
-      border-radius: 6px;
-      border: 1px solid #475569;
-    }
-
-    .recce-btn-secondary:active {
-      background: #475569;
-    }
-
-    .recce-close-viewer-btn {
-      background: #dc2626;
-      color: #ffffff;
-      border: none;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 9px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-family: inherit;
-    }
-
-    .recce-close-viewer-btn:active {
-      background: #b91c1c;
-    }
-
-    .recce-iframe-container {
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-      -webkit-overflow-scrolling: touch;
-      background: #0b0f19;
-    }
-
-    .recce-iframe-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 0;
-      display: block;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- 1. MAIN DASHBOARD MENU -->
-  <div id="dashboard-view" class="card">
-    <div class="brand-header">
-      <img src="https://lh3.googleusercontent.com/d/14e4H8QXRg6zjs9y04Kr_PFz7P5xwhrE6" alt="WHITEBANNER" class="brand-logo-img">
-      <div class="status-bar">
-        <span>SECURITY OPERATIONS</span>
-        <div class="sys-beacon">ACTIVE / SYNCED</div>
-      </div>
-    </div>
-
-    <button type="button" class="dash-btn btn-sec-log" onclick="openForm('Security Log')">
-      <span>Security Log</span>
-      <span class="dash-btn-sub">New Log Entry</span>
-    </button>
-
-    <button type="button" class="dash-btn btn-action-items" onclick="openOpenItems()">
-      <span>⚠️ Open Action Items</span>
-      <span class="dash-btn-sub">Task Queue</span>
-    </button>
-
-    <button type="button" class="dash-btn btn-personnel" onclick="openPersonnel()">
-      <span>Personnel Roster</span>
-      <span class="dash-btn-sub">Team & Emergency Contacts</span>
-    </button>
-
-    <button type="button" class="dash-btn btn-recce" onclick="openRecce()">
-      <span>New Recce Report</span>
-      <span class="dash-btn-sub">Recon & Site PDF</span>
-    </button>
-
-    <!-- NEW: Recce Reports Folder Button -->
-    <button type="button" class="dash-btn btn-recce-folder" onclick="openRecceFolder()">
-      <span>📁 Recce Reports Folder</span>
-      <span class="dash-btn-sub">Site PDF Archive</span>
-    </button>
-
-    <button type="button" class="dash-btn btn-calendar" onclick="openCalendar()">
-      <span>Operations Calendar</span>
-      <span class="dash-btn-sub">Duty Schedule</span>
-    </button>
-
-    <button type="button" class="dash-btn btn-map" onclick="openMap()">
-      <span>Perimeter & Assets Map</span>
-      <span class="dash-btn-sub">Live Location</span>
-    </button>
-  </div>
-
-  <!-- 2. RECCE REPORTS ARCHIVE FOLDER VIEW -->
-  <div id="recce-folder-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
-      <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #4338ca; color: #fff; border: none;" onclick="loadRecceReports(true)">🔄 Refresh</button>
-    </div>
-
-    <div class="status-bar" style="margin: 14px 0 10px 0;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">📁 Recce Field Reports Archive</h2>
-      <div class="sys-beacon" style="color: #a5b4fc;">DRIVE SYNCED</div>
-    </div>
-
-    <input type="text" id="recce-folder-search" placeholder="🔍 Filter locations..." onkeyup="filterRecceButtons()" style="margin-bottom: 12px;">
-
-    <div id="recce-folder-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Loading reports from Google Drive...</div>
-
-    <!-- Large Button Grid -->
-    <div id="recce-folder-grid" class="recce-folder-grid"></div>
-  </div>
-
-  <!-- 3. OPEN ACTION ITEMS VIEW -->
-  <div id="open-items-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 12px; color: var(--text-secondary);">Active Operator:</span>
-        <input type="text" id="active-operator-name" value="Miki Tofts" style="width: 140px; padding: 6px 10px; font-size: 13px;" title="Current Operator Name">
-      </div>
-    </div>
-
-    <div class="status-bar" style="margin: 14px 0;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">Open Action Items</h2>
-      <div class="sys-beacon">LIVE QUEUE</div>
-    </div>
-    <div id="open-items-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Loading active tasks...</div>
-    <div id="open-items-list"></div>
-  </div>
-
-  <!-- 4. PERSONNEL ROSTER VIEW -->
-  <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
-      <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #2563eb; color: #fff; border: none; font-weight: bold;" onclick="openAddStaffModal()">+ Add Staff</button>
-    </div>
-
-    <div class="status-bar" style="margin: 14px 0;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">House Staff Directory</h2>
-      <div class="sys-beacon" style="color: #2dd4bf;">ACTIVE ROSTER</div>
-    </div>
-
-    <div id="staff-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Loading staff records...</div>
-
-    <div class="roster-table-container">
-      <table class="roster-table">
-        <thead>
-          <tr>
-            <th style="width: 96px;">Avatar</th>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Contact</th>
-            <th>Emergency Contact</th>
-          </tr>
-        </thead>
-        <tbody id="staff-roster-body"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 5. RECCE FORM VIEW -->
-  <div id="recce-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <div class="status-bar" style="margin-bottom: 14px;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">Recce Field Report</h2>
-      <div class="sys-beacon">REPORT MODE</div>
-    </div>
-
-    <form id="recceForm">
-      <label for="recce-location">Facility / Location Name</label>
-      <input type="text" id="recce-location" placeholder="e.g. Compound Alpha / Hotel Grand" required>
-
-      <label for="recce-officer">Officer Name</label>
-      <input type="text" id="recce-officer" placeholder="Your name" required>
-
-      <label for="recce-date">Date</label>
-      <input type="date" id="recce-date" required>
-
-      <label for="recce-desc">Operational Notes / Briefing</label>
-      <textarea id="recce-desc" placeholder="Ingress corridors, access checkpoints, clearance codes..." required></textarea>
-
-      <label>Location & Parking Setup</label>
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #dc2626; color: white; border: none;" onclick="setPinMode('venue')">📍 Pin Venue</button>
-        <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: var(--panel-bg); color: var(--text-secondary);" onclick="setPinMode('parking')">🅿️ Pin Parking</button>
-      </div>
-
-      <!-- Map Layer Switcher (Streets vs Satellite) -->
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-layer-streets" class="back-btn" style="flex: 1; margin: 0; background-color: var(--panel-bg); color: var(--text-secondary);" onclick="setMapLayer('streets')">🗺️ Streets</button>
-        <button type="button" id="btn-layer-satellite" class="back-btn" style="flex: 1; margin: 0; background-color: #0d9488; color: white; border: none; font-weight: bold;" onclick="setMapLayer('satellite')">🛰️ Satellite</button>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <input type="text" id="map-search-input" placeholder="Search address or venue name..." style="flex: 1;">
-        <button type="button" class="back-btn" style="margin: 0; white-space: nowrap;" onclick="searchAddress()">🔍 Find & Pin</button>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="useCurrentLocation()">🎯 Current GPS to Venue</button>
-        <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset Pins</button>
-      </div>
-
-      <div id="recce-map-container"></div>
-      
-      <div id="coords-display" class="coord-display">
-        📍 Venue: Not set (Tap map or search)<br>
-        🅿️ Parking: Not set (Switch mode, then tap map)
-      </div>
-
-      <label for="recce-venue-gmaps">Venue Google Maps URL</label>
-      <input type="text" id="recce-venue-gmaps" placeholder="Generated from Venue Pin" required>
-
-      <label for="recce-parking-gmaps">Parking Google Maps URL</label>
-      <input type="text" id="recce-parking-gmaps" placeholder="Generated from Parking Pin">
-
-      <label for="recce-waze">Waze Navigation URL</label>
-      <input type="text" id="recce-waze" placeholder="Generated automatically">
-
-      <label>Photos (Up to 10)</label>
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">📷 Take Photo</button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">🖼️ Photo Library</button>
-      </div>
-
-      <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
-      <input type="file" id="recce-gallery-input" accept="image/*" multiple style="display: none;">
-
-      <div id="photo-count" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">0 photos attached</div>
-      <div id="photo-preview-grid" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
-
-      <div class="confirm-box">
-        <label class="confirm-label">
-          <input type="checkbox" id="recce-confirm-checkbox" required>
-          <span>I confirm all coordinates, operational notes, and photographic evidence are accurate.</span>
-        </label>
-      </div>
-
-      <button type="submit" id="recceSubmitBtn" class="submit-btn" style="background-color: #7c3aed;">Generate & Submit Recce PDF</button>
-    </form>
-    <div id="recce-status-message"></div>
-  </div>
-
-  <!-- 6. STANDARD LOG FORM VIEW -->
-  <div id="form-view" class="card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <div class="status-bar" style="margin-bottom: 14px;">
-      <h2 id="form-title" style="margin: 0; font-size: 18px; color: #fff;">Security Log</h2>
-      <div class="sys-beacon">LOGGING</div>
-    </div>
-
-    <form id="logForm">
-      <label for="name">Officer Name</label>
-      <select id="name" required>
-        <option value="" disabled selected>Select Officer...</option>
-        <option value="Miki Tofts">Miki Tofts</option>
-        <option value="Jeremy Page">Jeremy Page</option>
-        <option value="Ryan Dooley">Ryan Dooley</option>
-        <option value="Matthew Camilleri">Matthew Camilleri</option>
-      </select>
-
-      <label for="date">Date</label>
-      <input type="date" id="date" required>
-
-      <label for="type">Log Type</label>
-      <select id="type" required onchange="handleLogTypeChange(this.value)">
-        <option value="Security Log" selected>Security Log</option>
-        <option value="Incident Report">Incident Report</option>
-        <option value="Firearms Log">Firearms Log</option>
-        <option value="Operational Task">Operational Task</option>
-      </select>
-
-      <label for="remarks">Remarks / Details</label>
-      <textarea id="remarks" placeholder="Enter log entry details..." required></textarea>
-
-      <label for="status">Status</label>
-      <select id="status" required>
-        <option value="Open">Open</option>
-        <option value="Pending">Pending</option>
-        <option value="Closed">Closed</option>
-      </select>
-
-      <label>Supporting Evidence / Documents</label>
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerLogCamera()">📷 Take Photo</button>
-        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerLogFile()">📁 Upload File / Doc</button>
-      </div>
-
-      <input type="file" id="log-camera-input" accept="image/*" capture="environment" style="display: none;">
-      <input type="file" id="log-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display: none;">
-
-      <div id="log-file-status" style="display: none; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; margin-top: 6px; align-items: center; justify-content: space-between;">
-        <span id="log-file-name" style="font-size: 13px; color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;"></span>
-        <button type="button" onclick="clearLogFile()" style="background: none; border: none; color: #f87171; font-weight: bold; font-size: 14px; cursor: pointer;">✕ Remove</button>
-      </div>
-
-      <div class="divider">- OR PASTE WEB LINK -</div>
-      <input type="text" id="evidence" placeholder="https://...">
-
-      <div class="confirm-box">
-        <label class="confirm-label">
-          <input type="checkbox" id="log-confirm-checkbox" required>
-          <span>I confirm this log entry is complete and ready to log.</span>
-        </label>
-      </div>
-
-      <button type="submit" id="submitBtn" class="submit-btn">Submit Log Entry</button>
-    </form>
-    <div id="status-message"></div>
-  </div>
-
-  <!-- 7. OPERATIONS CALENDAR VIEW -->
-  <div id="calendar-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <div class="status-bar" style="margin-bottom: 14px;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">Operations Calendar</h2>
-      <div class="sys-beacon">SCHEDULE</div>
-    </div>
-    <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
-  </div>
-
-  <!-- 8. PERIMETER & ASSETS MAP VIEW WITH EMERGENCY HOSPITAL LOCATOR -->
-  <div id="map-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
-      <div class="sys-beacon">ASSETS & EMERGENCY</div>
-    </div>
-
-    <!-- Emergency Hospital Locator Bar -->
-    <div class="emergency-hospital-panel">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-        <button type="button" class="btn-emergency-action" id="btn-find-hospital" onclick="findNearestHospital()">
-          🚨 Emergency: Locate Nearest Hospital
-        </button>
-      </div>
-
-      <!-- Emergency Result Card -->
-      <div id="hospital-result-card" style="display: none; margin-top: 10px; background: rgba(220, 38, 38, 0.12); border: 1px solid #ef4444; border-radius: 8px; padding: 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            <div id="hospital-name" style="font-size: 15px; font-weight: 700; color: #f87171;">Searching...</div>
-            <div id="hospital-meta" style="font-size: 12px; color: #cbd5e1; margin-top: 3px;">Distance: calculating...</div>
-          </div>
-          <span style="font-size: 20px;">🏥</span>
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-top: 10px;">
-          <a id="btn-hospital-waze" href="#" target="_blank" class="nav-shortcut-btn" style="background-color: #0284c7; flex: 1; text-align: center;">
-            🚙 Open in Waze
-          </a>
-          <a id="btn-hospital-gmaps" href="#" target="_blank" class="nav-shortcut-btn" style="background-color: #16a34a; flex: 1; text-align: center;">
-            🗺️ Open Google Maps
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <iframe id="perimeter-map-iframe" src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="560" frameborder="0" scrolling="no"></iframe>
-  </div>
-
-  <!-- 9. IPAD STAFF MODAL WITH MULTI-LANGUAGE SELECTOR -->
-  <div id="staff-modal-overlay" class="modal-overlay" style="display: none;" onclick="closeStaffModalOnBackdrop(event)">
-    <div class="modal-content card" id="modal-container">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 id="staff-modal-title" style="margin: 0; font-size: 17px; color: #fff;">Add Staff Profile</h3>
-        <button type="button" class="back-btn" style="margin: 0; padding: 4px 10px;" onclick="closeStaffModal()">✕</button>
-      </div>
-
-      <div class="lang-selector-bar">
-        <button type="button" class="lang-tab active" id="lang-en" onclick="setModalLanguage('en')">English</button>
-        <button type="button" class="lang-tab" id="lang-ru" onclick="setModalLanguage('ru')">Русский</button>
-        <button type="button" class="lang-tab" id="lang-he" onclick="setModalLanguage('he')">עברית</button>
-      </div>
-
-      <form id="modalStaffForm">
-        <input type="hidden" id="modal-p-row" value="">
-        <input type="hidden" id="modal-p-existing-photo" value="">
-
-        <label id="lbl-photo">Personnel Photo</label>
-        <div class="personnel-photo-box">
-          <div class="personnel-preview" id="modal-preview-box">
-            <span id="modal-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
-            <img id="modal-img-tag" style="display: none;" alt="Preview" />
-          </div>
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-            <button type="button" id="btn-modal-cam" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerModalCamera()">📷 Take Photo</button>
-            <button type="button" id="btn-modal-gal" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerModalGallery()">🖼️ Upload File</button>
-            <button type="button" id="btn-modal-clear-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="clearModalPhoto()">✕ Clear</button>
-          </div>
-        </div>
-
-        <input type="file" id="modal-camera-input" accept="image/*" capture="user" style="display: none;">
-        <input type="file" id="modal-gallery-input" accept="image/*" style="display: none;">
-
-        <label for="modal-p-name" id="lbl-name">Full Name</label>
-        <input type="text" id="modal-p-name" placeholder="e.g. Dmitry Ziskind" required>
-
-        <label for="modal-p-nickname" id="lbl-nickname">Nickname / Callsign</label>
-        <input type="text" id="modal-p-nickname" placeholder="e.g. Santa / Dima">
-
-        <label for="modal-p-position" id="lbl-position">Job Title / Position</label>
-        <input type="text" id="modal-p-position" placeholder="e.g. Director / Security Team" required>
-
-        <label for="modal-p-startdate" id="lbl-startdate">Start Date</label>
-        <input type="date" id="modal-p-startdate">
-
-        <label for="modal-p-phone" id="lbl-phone">Phone Number</label>
-        <input type="tel" id="modal-p-phone" placeholder="e.g. 052-519-4744">
-
-        <label for="modal-p-emergency" id="lbl-emergency">Emergency Contact Information</label>
-        <input type="text" id="modal-p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540">
-
-        <label for="modal-p-allergies" id="lbl-allergies">Allergies / Medical Notes</label>
-        <input type="text" id="modal-p-allergies" placeholder="e.g. None / Penicillin" value="None">
-
-        <button type="submit" id="modalSubmitBtn" class="submit-btn" style="background-color: #0d9488; margin-top: 18px;">Save Staff Profile</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- 10. RECCE PDF FULLSCREEN VIEWER MODAL -->
-  <div id="recceViewerModal" class="recce-viewer-overlay" style="display: none;">
-    <div class="recce-viewer-topbar">
-      <div class="recce-viewer-meta">
-        <span style="font-size: 1.5rem;">📄</span>
-        <h3 id="recceViewerTitle">Report Viewer</h3>
-      </div>
-      <div class="recce-viewer-actions">
-        <a id="recceViewerExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="recce-btn-secondary">
-          ↗ Open External
-        </a>
-        <button type="button" class="recce-close-viewer-btn" onclick="closeRecceViewer()">
-          ✕ Close
-        </button>
-      </div>
-    </div>
-    <div class="recce-iframe-container">
-      <iframe id="reccePdfFrame" src="about:blank" frameborder="0" allowfullscreen></iframe>
-    </div>
-  </div>
-
-  <script>
+<script>
     var webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
 
     var base64Image = "", fileName = "", mimeType = "";
@@ -1437,6 +231,48 @@
     };
 
     // ==========================================
+    // HIGH PERFORMANCE IMAGE COMPRESSION
+    // Reduces iPad 8MB photo to ~200-300KB
+    // ==========================================
+    function toBase64(file, maxDim, quality) {
+      maxDim = maxDim || 1280;
+      quality = quality || 0.65;
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(e) {
+          var img = new Image();
+          img.src = e.target.result;
+          img.onload = function() {
+            var width = img.width;
+            var height = img.height;
+
+            if (width > height && width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            var result = canvas.toDataURL('image/jpeg', quality);
+            canvas.width = 0;
+            canvas.height = 0;
+            resolve(result);
+          };
+          img.onerror = function(err) { reject(err); };
+        };
+        reader.onerror = function(err) { reject(err); };
+      });
+    }
+
+    // ==========================================
     // RECCE REPORTS FOLDER & FULLSCREEN VIEWER
     // ==========================================
     function loadRecceReports(forceReload) {
@@ -1485,11 +321,10 @@
         btn.className = 'recce-folder-card';
         
         var cleanLabel = report.label || report.name || "Site Report";
-        // Ensure clean label without .pdf extension
         cleanLabel = cleanLabel.replace(/\.pdf$/i, '').trim();
 
         btn.onclick = function() {
-          var previewUrl = "https://drive.google.com/file/d/" + report.id + "/preview";
+          var previewUrl = report.previewUrl || ("https://drive.google.com/file/d/" + report.id + "/preview");
           openRecceViewer(cleanLabel, previewUrl, report.url);
         };
 
@@ -1528,7 +363,6 @@
       var frame = document.getElementById('reccePdfFrame');
 
       modal.style.display = 'none';
-      // Free WebKit memory on iPad
       frame.src = 'about:blank';
     };
 
@@ -1570,10 +404,13 @@
       var nameSpan = document.getElementById('log-file-name');
 
       if (file.type && file.type.startsWith('image/')) {
-        toBase64(file).then(function(b64WithHeader) {
+        if (nameSpan) nameSpan.innerText = "⏳ Compressing: " + fileName;
+        if (statusBox) statusBox.style.display = "flex";
+
+        toBase64(file, 1280, 0.65).then(function(b64WithHeader) {
           base64Image = b64WithHeader.split(',')[1];
-          if (nameSpan) nameSpan.innerText = "📷 " + fileName;
-          if (statusBox) statusBox.style.display = "flex";
+          mimeType = 'image/jpeg';
+          if (nameSpan) nameSpan.innerText = "📷 " + fileName + " (Optimized)";
         }).catch(function(err) {
           alert("Error processing photo: " + err);
         });
@@ -1672,7 +509,7 @@
           });
 
           tdAvatar.appendChild(avatarWrapper);
-          tr.appendChild(tdAvatar);
+        tr.appendChild(tdAvatar);
 
           var tdName = document.createElement('td');
           tdName.innerHTML = '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>';
@@ -1781,7 +618,7 @@
       if (cam) {
         cam.value = "";
         cam.click();
-      }
+    }
     };
 
     window.triggerActionFilePicker = function(rowIndex) {
@@ -1805,36 +642,40 @@
       }
 
       var incoming = Array.from(fileList).slice(0, remaining);
+      var counter = document.getElementById('action-file-count-' + rowIndex);
+      if (counter) counter.innerText = "Optimizing attachments...";
 
-      incoming.forEach(function(file) {
+      var processQueue = incoming.map(function(file) {
         if (file.type && file.type.startsWith('image/')) {
-          toBase64(file).then(function(b64WithHeader) {
-            var rawB64 = b64WithHeader.split(',')[1];
-            current.push({
+          return toBase64(file, 1280, 0.65).then(function(b64WithHeader) {
+            return {
               name: file.name || ('photo_' + Date.now() + '.jpg'),
               mimeType: 'image/jpeg',
-              base64: rawB64
-            });
-            renderActionAttachments(rowIndex);
-          }).catch(function(err) {
-            console.error("Camera image conversion error:", err);
+              base64: b64WithHeader.split(',')[1]
+            };
           });
         } else {
-          var reader = new FileReader();
-          reader.onload = function(e) {
-            var rawB64 = e.target.result.split(',')[1];
-            current.push({
-              name: file.name,
-              mimeType: file.type || 'application/octet-stream',
-              base64: rawB64
-            });
-            renderActionAttachments(rowIndex);
-          };
-          reader.onerror = function() {
-            alert("Failed to read file: " + file.name);
-          };
-          reader.readAsDataURL(file);
+          return new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              resolve({
+                name: file.name,
+                mimeType: file.type || 'application/octet-stream',
+                base64: e.target.result.split(',')[1]
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
         }
+      });
+
+      Promise.all(processQueue).then(function(results) {
+        results.forEach(function(r) { current.push(r); });
+        renderActionAttachments(rowIndex);
+      }).catch(function(err) {
+        alert("Error processing attachments: " + err.message);
+        renderActionAttachments(rowIndex);
       });
     };
 
@@ -1928,7 +769,7 @@
                   return '<a href="' + (att.url || '#') + '" target="_blank" style="font-size:11px; color:#60a5fa; text-decoration:none; background:rgba(96,165,250,0.1); padding:2px 6px; border-radius:4px; border:1px solid #3b82f6;">📎 ' + escapeHtml(att.name || 'Attachment') + '</a>';
                 }).join('') +
               '</div>';
-            }
+          }
 
             return '<div class="update-bubble">' +
                      '<div class="update-meta">' +
@@ -2348,40 +1189,6 @@
         });
     };
 
-    function toBase64(file) {
-      return new Promise(function(resolve, reject) {
-        var reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function(e) {
-          var img = new Image();
-          img.src = e.target.result;
-          img.onload = function() {
-            var maxDim = 1200;
-            var width = img.width;
-            var height = img.height;
-
-            if (width > height && width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-
-            var canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-          img.onerror = function(err) { reject(err); };
-        };
-        reader.onerror = function(err) { reject(err); };
-      });
-    }
-
     function renderPhotoPreviews() {
       var previewGrid = document.getElementById('photo-preview-grid');
       var countDisplay = document.getElementById('photo-count');
@@ -2435,27 +1242,33 @@
     function handleIncomingFiles(fileList) {
       var files = Array.from(fileList);
       var countDisplay = document.getElementById('photo-count');
+      var availableSlots = 10 - reccePhotos.length;
 
-      files.forEach(function(f) {
-        if (reccePhotos.length >= 10) {
-          alert("Maximum of 10 photos reached.");
-          return;
-        }
+      if (availableSlots <= 0) {
+        alert("Maximum of 10 photos reached.");
+        return;
+      }
 
-        if (countDisplay) countDisplay.innerText = "Processing photo... (" + (reccePhotos.length + 1) + "/10)";
+      var batch = files.slice(0, availableSlots);
+      if (countDisplay) countDisplay.innerText = "Optimizing " + batch.length + " photo(s)...";
 
-        toBase64(f).then(function(b64WithHeader) {
-          var rawB64 = b64WithHeader.split(',')[1];
-          reccePhotos.push({
-            base64: rawB64,
+      var compressQueue = batch.map(function(f) {
+        return toBase64(f, 1280, 0.65).then(function(b64WithHeader) {
+          return {
+            base64: b64WithHeader.split(',')[1],
             mimeType: "image/jpeg",
             name: f.name || ('photo_' + Date.now() + '.jpg')
-          });
-          renderPhotoPreviews();
-          if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
-        }).catch(function(err) {
-          console.error("Compression failed:", err);
+          };
         });
+      });
+
+      Promise.all(compressQueue).then(function(compressed) {
+        compressed.forEach(function(item) { reccePhotos.push(item); });
+        renderPhotoPreviews();
+        if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
+      }).catch(function(err) {
+        console.error("Batch compression error:", err);
+        alert("Failed to process some images.");
       });
     }
 
@@ -2519,7 +1332,7 @@
           });
 
           if (closest) {
-            var estDriveMinutes = Math.round((minDistance / 55) * 60) + 3; // 55 km/h avg speed + 3 min ramp
+            var estDriveMinutes = Math.round((minDistance / 55) * 60) + 3;
             
             nameEl.innerText = closest.name;
             metaEl.innerText = "Straight-line: " + minDistance.toFixed(1) + " km | Est. drive: ~" + estDriveMinutes + " mins";
@@ -2566,7 +1379,7 @@
 
       function handleModalImage(file) {
         if (!file) return;
-        toBase64(file).then(function(b64) {
+        toBase64(file, 640, 0.75).then(function(b64) {
           personnelPhotoBase64 = b64;
           var img = document.getElementById('modal-img-tag');
           img.src = b64;
@@ -2697,7 +1510,7 @@
             "SUBMIT RECCE REPORT?\n\n" +
             "• Venue: " + locationName + "\n" +
             "• Officer: " + officer + "\n" +
-            "• Photos: " + reccePhotos.length + "\n" +
+            "• Photos: " + reccePhotos.length + " (Optimized)\n" +
             "• Map View: " + (currentMapLayer === 'satellite' ? 'Satellite Hybrid' : 'Street Map') + "\n\n" +
             "Generate PDF and save to Google Drive?"
           );
@@ -2706,7 +1519,7 @@
 
           var btn = document.getElementById("recceSubmitBtn");
           btn.disabled = true;
-          btn.innerText = "Generating PDF & Uploading...";
+          btn.innerText = "Generating PDF & Uploading (" + reccePhotos.length + " photos)...";
           btn.style.backgroundColor = "#475569";
 
           var payload = {
@@ -2745,7 +1558,6 @@
             if (countDisplay) countDisplay.innerText = "0 photos attached";
             var dRecce = document.getElementById('recce-date');
             if (dRecce) dRecce.valueAsDate = new Date();
-            // Invalidate cache so newly created report appears in folder
             recceReportsCache = [];
             window.goBack();
           }).catch(function(err) {
@@ -2818,5 +1630,3 @@
       }
     };
   </script>
-</body>
-</html>
