@@ -1,1673 +1,2034 @@
-<script>
-  var webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
-
-  var base64Image = "", fileName = "", mimeType = "";
-  var reccePhotos = [];
-  var personnelPhotoBase64 = "";
-  var staffRosterCache = [];
-  var recceReportsCache = [];
-
-  // Track active file attachments per Open Action Item
-  var itemAttachmentsMap = {};
-
-  var recceMap = null;
-  var currentPinMode = 'venue';
-  var venueCoords = null;
-  var parkingCoords = null;
-  var venueMarker = null;
-  var parkingMarker = null;
-
-  // Recce Map Layer State & Leaflet Tiles
-  var currentMapLayer = 'satellite';
-  var streetTileLayer = null;
-  var satelliteTileLayer = null;
-
-  var currentModalLang = 'en';
-  var modalI18n = {
-    en: {
-      addTitle: "Add Staff Profile",
-      editTitle: "Edit: ",
-      photo: "Personnel Photo",
-      takePhoto: "📷 Take Photo",
-      uploadPhoto: "🖼️ Upload File",
-      clearPhoto: "✕ Clear",
-      name: "Full Name",
-      namePl: "e.g. Dmitry Ziskind",
-      nickname: "Nickname / Callsign",
-      nicknamePl: "e.g. Santa / Dima",
-      position: "Job Title / Position",
-      positionPl: "e.g. Director / Security Team",
-      startDate: "Start Date",
-      phone: "Phone Number",
-      phonePl: "e.g. 052-519-4744",
-      emergency: "Emergency Contact Information",
-      emergencyPl: "e.g. Olga (Manager): 052-440-6540",
-      allergies: "Allergies / Medical Notes",
-      allergiesPl: "e.g. None / Penicillin",
-      submitBtn: "Save Staff Profile",
-      savingBtn: "Saving to Roster..."
-    },
-    ru: {
-      addTitle: "Добавить сотрудника",
-      editTitle: "Редактировать: ",
-      photo: "Фотография сотрудника",
-      takePhoto: "📷 Сделать снимок",
-      uploadPhoto: "🖼️ Загрузить файл",
-      clearPhoto: "✕ Удалить",
-      name: "Полное имя",
-      namePl: "напр. Дмитрий Зискинд",
-      nickname: "Позывной / Прозвище",
-      nicknamePl: "напр. Santa / Дима",
-      position: "Должность / Роль",
-      positionPl: "напр. Начальник охраны",
-      startDate: "Дата начала работы",
-      phone: "Номер телефона",
-      phonePl: "напр. 052-519-4744",
-      emergency: "Экстренный контакт",
-      emergencyPl: "напр. Ольга (Менеджер): 052-440-6540",
-      allergies: "Аллергии / Медицинские заметки",
-      allergiesPl: "напр. Нет / Пенициллин",
-      submitBtn: "Сохранить профиль",
-      savingBtn: "Сохранение..."
-    },
-    he: {
-      addTitle: "הוספת איש צוות",
-      editTitle: "עריכת: ",
-      photo: "תמונת איש צוות",
-      takePhoto: "📷 צלם תמונה",
-      uploadPhoto: "🖼️ העלה קובץ",
-      clearPhoto: "✕ מחק תמונה",
-      name: "שם מלא",
-      namePl: "לדוגמה: דמיטרי זיסקינד",
-      nickname: "כינוי / אות קריאה",
-      nicknamePl: "לדוגמה: סנטה",
-      position: "תפקיד / הגדרת תפקיד",
-      positionPl: "לדוגמה: מנהל אבטחה",
-      startDate: "תאריך התחלה",
-      phone: "מספר טלפון",
-      phonePl: "לדוגמה: 052-519-4744",
-      emergency: "איש קשר לשעת חירום",
-      emergencyPl: "לדוגמה: אולגה (מנהלת): 052-440-6540",
-      allergies: "אלרגיות / הערות רפואיות",
-      allergiesPl: "לדוגמה: אין / פניצילין",
-      submitBtn: "שמור פרופיל צוות",
-      savingBtn: "שומר נתונים..."
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WHITEBANNER - Operations Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg-base: #1e2229;
+      --card-bg: #282d36;
+      --panel-bg: #1f232b;
+      --border-color: #3b424e;
+      --border-light: #4c5565;
+      --text-main: #ffffff;
+      --text-secondary: #a4b0be;
     }
-  };
 
-  window.setModalLanguage = function(lang) {
-    currentModalLang = lang;
-    ['en', 'ru', 'he'].forEach(function(l) {
-      var el = document.getElementById('lang-' + l);
-      if (el) el.classList.toggle('active', l === lang);
-    });
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-base);
+      background-image: radial-gradient(circle at 50% 0%, rgba(60, 70, 85, 0.3) 0%, transparent 70%);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      color: var(--text-main);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
 
-    var container = document.getElementById('modal-container');
-    if (container) {
-      if (lang === 'he') {
-        container.classList.add('rtl-mode');
-      } else {
-        container.classList.remove('rtl-mode');
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      width: 100%;
+      max-width: 580px;
+      position: relative;
+    }
+
+    .wide-card { max-width: 900px; }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 22px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 18px;
+    }
+
+    .brand-logo-img {
+      max-height: 82px;
+      width: auto;
+      object-fit: contain;
+      filter: invert(1) brightness(1.2);
+      margin-bottom: 8px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .sys-beacon {
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .sys-beacon::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
+    }
+
+    .dash-btn {
+      width: 100%;
+      padding: 16px 20px;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      -webkit-appearance: none;
+      transition: all 0.12s ease-in-out;
+      font-family: inherit;
+    }
+
+    .dash-btn:active {
+      transform: scale(0.99);
+      filter: brightness(0.9);
+    }
+
+    .dash-btn-sub {
+      font-size: 13px;
+      opacity: 0.85;
+      font-weight: 400;
+      color: #e2e8f0;
+    }
+
+    .btn-sec-log { background: #3a424e; border-left: 6px solid #64748b; }
+    .btn-action-items { background: #c25e00; border-left: 6px solid #fb923c; }
+    .btn-personnel { background: #0f766e; border-left: 6px solid #14b8a6; }
+    .btn-recce { background: #6d28d9; border-left: 6px solid #a78bfa; }
+    .btn-recce-folder { background: #4338ca; border-left: 6px solid #818cf8; }
+    .btn-calendar { background: #1d4ed8; border-left: 6px solid #60a5fa; }
+    .btn-map { background: #15803d; border-left: 6px solid #4ade80; }
+
+    .back-btn {
+      padding: 9px 16px;
+      background-color: var(--panel-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-appearance: none;
+      font-family: inherit;
+    }
+    .back-btn:hover { color: #fff; background-color: #2b313c; }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 15px;
+      color: #ffffff;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+    }
+
+    textarea { resize: vertical; min-height: 95px; }
+    input[type="file"] { padding: 10px; background: var(--panel-bg); border: 1px dashed var(--border-light); color: var(--text-secondary); }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 20px;
+      cursor: pointer;
+      -webkit-appearance: none;
+      font-family: inherit;
+    }
+
+    #form-view, #calendar-view, #map-view, #recce-view, #open-items-view, #personnel-view, #recce-folder-view { display: none; }
+    #status-message, #recce-status-message, #staff-status, #recce-folder-status { text-align: center; margin-top: 14px; font-weight: 600; font-size: 14px; }
+    .error { color: #f87171; }
+    .divider { text-align: center; margin: 12px 0; font-weight: 600; color: var(--text-secondary); font-size: 12px; }
+
+    iframe { border: 1px solid var(--border-color); border-radius: 8px; }
+    #recce-map-container { height: 350px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; cursor: crosshair; }
+
+    .coord-display {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-top: 8px;
+      line-height: 1.6;
+      background: var(--panel-bg);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      border-left: 4px solid #60a5fa;
+    }
+
+    .confirm-box {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 20px;
+    }
+    .confirm-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #e2e8f0;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .confirm-label input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex-shrink: 0; accent-color: #2563eb; }
+
+    .task-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid #fb923c;
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .task-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .close-item-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #15803d;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      margin-top: 14px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .updates-section {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .updates-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .updates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .update-bubble {
+      background: rgba(0, 0, 0, 0.25);
+      border-left: 3px solid #60a5fa;
+      border-radius: 0 6px 6px 0;
+      padding: 8px 12px;
+    }
+    .update-meta {
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .update-content {
+      font-size: 13px;
+      color: #f1f5f9;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    .add-update-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+      background: rgba(0,0,0,0.15);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .update-input-field {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 13px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: #ffffff;
+    }
+    .btn-add-update {
+      padding: 10px 16px;
+      background-color: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .item-file-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .item-file-btn:active { filter: brightness(0.9); }
+    .item-file-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .item-attachment-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e242d;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #60a5fa;
+      max-width: 100%;
+    }
+    .item-pill-remove {
+      background: none;
+      border: none;
+      color: #f87171;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 2px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .roster-table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--panel-bg);
+    }
+
+    .roster-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .roster-table th {
+      background: #181b21;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .roster-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+      vertical-align: middle;
+    }
+
+    .staff-row-clickable {
+      cursor: pointer;
+      transition: background-color 0.15s ease-in-out;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .staff-row-clickable:hover { background: rgba(255, 255, 255, 0.04); }
+    .staff-row-clickable:active { background: rgba(255, 255, 255, 0.08); }
+
+    .staff-phone-link {
+      color: #60a5fa;
+      text-decoration: none;
+      display: inline-block;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .staff-phone-link:active { background: rgba(96, 165, 250, 0.2); }
+
+    .staff-avatar-wrapper {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .staff-avatar-img {
+      width: 76px;
+      height: 76px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid #3b82f6;
+      background: var(--card-bg);
+      display: block;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .staff-avatar-wrapper:active .staff-avatar-img {
+      transform: scale(0.95);
+      border-color: #60a5fa;
+    }
+
+    .staff-avatar-placeholder {
+      width: 76px;
+      height: 76px;
+      border-radius: 8px;
+      background: #334155;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      border: 2px solid #475569;
+      transition: transform 0.15s ease;
+    }
+
+    .nickname-speech-bubble {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e3a8a;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      border: 1px solid #60a5fa;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .nickname-speech-bubble::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: #1e3a8a transparent transparent transparent;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+
+    .modal-content {
+      max-height: 90vh;
+      overflow-y: auto;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .lang-selector-bar {
+      display: flex;
+      background: var(--panel-bg);
+      padding: 4px;
+      border-radius: 8px;
+      gap: 4px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 14px;
+    }
+
+    .lang-tab {
+      flex: 1;
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 6px;
+      padding: 7px 0;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .lang-tab.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .rtl-mode {
+      direction: rtl;
+      text-align: right;
+    }
+    .rtl-mode input, .rtl-mode label { text-align: right; }
+
+    .personnel-photo-box {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: var(--panel-bg);
+      border: 1px dashed var(--border-light);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 6px;
+    }
+
+    .personnel-preview {
+      width: 90px;
+      height: 110px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .personnel-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .emergency-hospital-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .btn-emergency-action {
+      width: 100%;
+      min-height: 48px;
+      background: #b91c1c;
+      color: #ffffff;
+      border: 1px solid #ef4444;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+    }
+
+    .nav-shortcut-btn {
+      padding: 10px 12px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+    }
+
+    .recce-folder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .recce-folder-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-left: 6px solid #818cf8;
+      border-radius: 10px;
+      padding: 20px 16px;
+      min-height: 86px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      color: #ffffff;
+      font-family: inherit;
+    }
+
+    .recce-folder-icon { font-size: 24px; flex-shrink: 0; }
+    .recce-folder-label { font-size: 16px; font-weight: 700; color: #f8fafc; word-break: break-word; }
+
+    .recce-viewer-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0f172a;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .recce-viewer-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    .recce-viewer-meta { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .recce-viewer-meta h3 { margin: 0; font-size: 1.1rem; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+    .recce-viewer-actions { display: flex; align-items: center; gap: 10px; }
+    .recce-btn-secondary { background: #334155; color: #f1f5f9; text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 6px; border: 1px solid #475569; }
+    .recce-close-viewer-btn { background: #dc2626; color: #ffffff; border: none; font-size: 14px; font-weight: 700; padding: 9px 16px; border-radius: 6px; cursor: pointer; }
+    .recce-iframe-container { flex: 1; width: 100%; height: 100%; background: #0b0f19; }
+    .recce-iframe-container iframe { width: 100%; height: 100%; border: none; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. MAIN DASHBOARD MENU -->
+  <div id="dashboard-view" class="card">
+    <div class="brand-header">
+      <img src="https://lh3.googleusercontent.com/d/14e4H8QXRg6zjs9y04Kr_PFz7P5xwhrE6" alt="WHITEBANNER" class="brand-logo-img">
+      <div class="status-bar">
+        <span>SECURITY OPERATIONS</span>
+        <div class="sys-beacon">ACTIVE / SYNCED</div>
+      </div>
+    </div>
+
+    <button type="button" class="dash-btn btn-sec-log" onclick="openForm('Security Log')">
+      <span>Security Log</span>
+      <span class="dash-btn-sub">New Log Entry</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-action-items" onclick="openOpenItems()">
+      <span>⚠️ Open Action Items</span>
+      <span class="dash-btn-sub">Task Queue</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-personnel" onclick="openPersonnel()">
+      <span>Personnel Roster</span>
+      <span class="dash-btn-sub">Team & Emergency Contacts</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-recce" onclick="openRecce()">
+      <span>New Recce Report</span>
+      <span class="dash-btn-sub">Recon & Site PDF</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-recce-folder" onclick="openRecceFolder()">
+      <span>📁 Recce Reports Folder</span>
+      <span class="dash-btn-sub">Site PDF Archive</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-calendar" onclick="openCalendar()">
+      <span>Operations Calendar</span>
+      <span class="dash-btn-sub">Duty Schedule</span>
+    </button>
+
+    <button type="button" class="dash-btn btn-map" onclick="openMap()">
+      <span>Perimeter & Assets Map</span>
+      <span class="dash-btn-sub">Live Location</span>
+    </button>
+  </div>
+
+  <!-- 2. RECCE REPORTS ARCHIVE FOLDER VIEW -->
+  <div id="recce-folder-view" class="card wide-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #4338ca; color: #fff; border: none;" onclick="loadRecceReports(true)">🔄 Refresh</button>
+    </div>
+
+    <div class="status-bar" style="margin: 14px 0 10px 0;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">📁 Recce Field Reports Archive</h2>
+      <div class="sys-beacon" style="color: #a5b4fc;">DRIVE SYNCED</div>
+    </div>
+
+    <input type="text" id="recce-folder-search" placeholder="🔍 Filter locations..." onkeyup="filterRecceButtons()" style="margin-bottom: 12px;">
+    <div id="recce-folder-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Loading reports...</div>
+    <div id="recce-folder-grid" class="recce-folder-grid"></div>
+  </div>
+
+  <!-- 3. OPEN ACTION ITEMS VIEW -->
+  <div id="open-items-view" class="card wide-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12px; color: var(--text-secondary);">Active Operator:</span>
+        <input type="text" id="active-operator-name" value="Miki Tofts" style="width: 140px; padding: 6px 10px; font-size: 13px;" title="Current Operator Name">
+      </div>
+    </div>
+
+    <div class="status-bar" style="margin: 14px 0;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">Open Action Items</h2>
+      <div class="sys-beacon">LIVE QUEUE</div>
+    </div>
+    <div id="open-items-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Loading active tasks...</div>
+    <div id="open-items-list"></div>
+  </div>
+
+  <!-- 4. PERSONNEL ROSTER VIEW -->
+  <div id="personnel-view" class="card wide-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #2563eb; color: #fff; border: none; font-weight: bold;" onclick="openAddStaffModal()">+ Add Staff</button>
+    </div>
+
+    <div class="status-bar" style="margin: 14px 0;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">House Staff Directory</h2>
+      <div class="sys-beacon" style="color: #2dd4bf;">ACTIVE ROSTER</div>
+    </div>
+
+    <div id="staff-status" style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Loading staff records...</div>
+
+    <div class="roster-table-container">
+      <table class="roster-table">
+        <thead>
+          <tr>
+            <th style="width: 96px;">Avatar</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Contact</th>
+            <th>Emergency Contact</th>
+          </tr>
+        </thead>
+        <tbody id="staff-roster-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. RECCE FORM VIEW -->
+  <div id="recce-view" class="card wide-card">
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <div class="status-bar" style="margin-bottom: 14px;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">Recce Field Report</h2>
+      <div class="sys-beacon">REPORT MODE</div>
+    </div>
+
+    <form id="recceForm">
+      <label for="recce-location">Facility / Location Name</label>
+      <input type="text" id="recce-location" placeholder="e.g. Compound Alpha / Hotel Grand" required>
+
+      <label for="recce-officer">Officer Name</label>
+      <input type="text" id="recce-officer" placeholder="Your name" required>
+
+      <label for="recce-date">Date</label>
+      <input type="date" id="recce-date" required>
+
+      <label for="recce-desc">Operational Notes / Briefing</label>
+      <textarea id="recce-desc" placeholder="Ingress corridors, access checkpoints, clearance codes..." required></textarea>
+
+      <label>Location & Parking Setup</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #dc2626; color: white; border: none;" onclick="setPinMode('venue')">📍 Pin Venue</button>
+        <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: var(--panel-bg); color: var(--text-secondary);" onclick="setPinMode('parking')">🅿️ Pin Parking</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" id="btn-layer-streets" class="back-btn" style="flex: 1; margin: 0; background-color: var(--panel-bg); color: var(--text-secondary);" onclick="setMapLayer('streets')">🗺️ Streets</button>
+        <button type="button" id="btn-layer-satellite" class="back-btn" style="flex: 1; margin: 0; background-color: #0d9488; color: white; border: none; font-weight: bold;" onclick="setMapLayer('satellite')">🛰️ Satellite</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <input type="text" id="map-search-input" placeholder="Search address or venue name..." style="flex: 1;">
+        <button type="button" class="back-btn" style="margin: 0; white-space: nowrap;" onclick="searchAddress()">🔍 Find & Pin</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" id="btn-gps-action" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="useCurrentLocation()">🎯 Current GPS to Venue</button>
+        <button type="button" class="back-btn" style="margin: 0;" onclick="clearLocation()">✕ Reset Pins</button>
+      </div>
+
+      <div id="recce-map-container"></div>
+      
+      <div id="coords-display" class="coord-display">
+        📍 Venue: Not set (Tap map or search)<br>
+        🅿️ Parking: Not set (Switch mode, then tap map)
+      </div>
+
+      <label for="recce-venue-gmaps">Venue Google Maps URL</label>
+      <input type="text" id="recce-venue-gmaps" placeholder="Generated from Venue Pin" required>
+
+      <label for="recce-parking-gmaps">Parking Google Maps URL</label>
+      <input type="text" id="recce-parking-gmaps" placeholder="Generated from Parking Pin">
+
+      <label for="recce-waze">Waze Navigation URL</label>
+      <input type="text" id="recce-waze" placeholder="Generated automatically">
+
+      <label>Photos (Up to 10)</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none;" onclick="triggerCamera()">📷 Take Photo</button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none;" onclick="triggerGallery()">🖼️ Photo Library</button>
+      </div>
+
+      <input type="file" id="recce-camera-input" accept="image/*" capture="environment" style="display: none;">
+      <input type="file" id="recce-gallery-input" accept="image/*" multiple style="display: none;">
+
+      <div id="photo-count" style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">0 photos attached</div>
+      <div id="photo-preview-grid" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+
+      <div class="confirm-box">
+        <label class="confirm-label">
+          <input type="checkbox" id="recce-confirm-checkbox" required>
+          <span>I confirm all coordinates, operational notes, and photographic evidence are accurate.</span>
+        </label>
+      </div>
+
+      <button type="submit" id="recceSubmitBtn" class="submit-btn" style="background-color: #7c3aed;">Generate & Submit Recce PDF</button>
+    </form>
+    <div id="recce-status-message"></div>
+  </div>
+
+  <!-- 6. STANDARD LOG FORM VIEW -->
+  <div id="form-view" class="card">
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <div class="status-bar" style="margin-bottom: 14px;">
+      <h2 id="form-title" style="margin: 0; font-size: 18px; color: #fff;">Security Log</h2>
+      <div class="sys-beacon">LOGGING</div>
+    </div>
+
+    <form id="logForm">
+      <label for="name">Officer Name</label>
+      <select id="name" required>
+        <option value="" disabled selected>Select Officer...</option>
+        <option value="Miki Tofts">Miki Tofts</option>
+        <option value="Jeremy Page">Jeremy Page</option>
+        <option value="Ryan Dooley">Ryan Dooley</option>
+        <option value="Matthew Camilleri">Matthew Camilleri</option>
+      </select>
+
+      <label for="date">Date</label>
+      <input type="date" id="date" required>
+
+      <label for="type">Log Type</label>
+      <select id="type" required onchange="handleLogTypeChange(this.value)">
+        <option value="Security Log" selected>Security Log</option>
+        <option value="Incident Report">Incident Report</option>
+        <option value="Firearms Log">Firearms Log</option>
+        <option value="Operational Task">Operational Task</option>
+      </select>
+
+      <label for="remarks">Remarks / Details</label>
+      <textarea id="remarks" placeholder="Enter log entry details..." required></textarea>
+
+      <label for="status">Status</label>
+      <select id="status" required>
+        <option value="Open">Open</option>
+        <option value="Pending">Pending</option>
+        <option value="Closed">Closed</option>
+      </select>
+
+      <label>Supporting Evidence / Documents</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerLogCamera()">📷 Take Photo</button>
+        <button type="button" class="back-btn" style="flex: 1; margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerLogFile()">📁 Upload File / Doc</button>
+      </div>
+
+      <input type="file" id="log-camera-input" accept="image/*" capture="environment" style="display: none;">
+      <input type="file" id="log-file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display: none;">
+
+      <div id="log-file-status" style="display: none; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; margin-top: 6px; align-items: center; justify-content: space-between;">
+        <span id="log-file-name" style="font-size: 13px; color: #60a5fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;"></span>
+        <button type="button" onclick="clearLogFile()" style="background: none; border: none; color: #f87171; font-weight: bold; font-size: 14px; cursor: pointer;">✕ Remove</button>
+      </div>
+
+      <div class="divider">- OR PASTE WEB LINK -</div>
+      <input type="text" id="evidence" placeholder="https://...">
+
+      <div class="confirm-box">
+        <label class="confirm-label">
+          <input type="checkbox" id="log-confirm-checkbox" required>
+          <span>I confirm this log entry is complete and ready to log.</span>
+        </label>
+      </div>
+
+      <button type="submit" id="submitBtn" class="submit-btn">Submit Log Entry</button>
+    </form>
+    <div id="status-message"></div>
+  </div>
+
+  <!-- 7. OPERATIONS CALENDAR VIEW -->
+  <div id="calendar-view" class="card wide-card">
+    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
+    <div class="status-bar" style="margin-bottom: 14px;">
+      <h2 style="margin: 0; font-size: 18px; color: #fff;">Operations Calendar</h2>
+      <div class="sys-beacon">SCHEDULE</div>
+    </div>
+    <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
+  </div>
+
+  <!-- 8. PERIMETER & ASSETS MAP VIEW -->
+  <div id="map-view" class="card wide-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <div class="sys-beacon">ASSETS & EMERGENCY</div>
+    </div>
+
+    <div class="emergency-hospital-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <button type="button" class="btn-emergency-action" id="btn-find-hospital" onclick="findNearestHospital()">
+          🚨 Emergency: Locate Nearest Hospital
+        </button>
+      </div>
+
+      <div id="hospital-result-card" style="display: none; margin-top: 10px; background: rgba(220, 38, 38, 0.12); border: 1px solid #ef4444; border-radius: 8px; padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div id="hospital-name" style="font-size: 15px; font-weight: 700; color: #f87171;">Searching...</div>
+            <div id="hospital-meta" style="font-size: 12px; color: #cbd5e1; margin-top: 3px;">Distance: calculating...</div>
+          </div>
+          <span style="font-size: 20px;">🏥</span>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <a id="btn-hospital-waze" href="#" target="_blank" class="nav-shortcut-btn" style="background-color: #0284c7; flex: 1; text-align: center;">
+            🚙 Open in Waze
+          </a>
+          <a id="btn-hospital-gmaps" href="#" target="_blank" class="nav-shortcut-btn" style="background-color: #16a34a; flex: 1; text-align: center;">
+            🗺️ Open Google Maps
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <iframe id="perimeter-map-iframe" src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="560" frameborder="0" scrolling="no"></iframe>
+  </div>
+
+  <!-- 9. STAFF MODAL -->
+  <div id="staff-modal-overlay" class="modal-overlay" style="display: none;" onclick="closeStaffModalOnBackdrop(event)">
+    <div class="modal-content card" id="modal-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 id="staff-modal-title" style="margin: 0; font-size: 17px; color: #fff;">Add Staff Profile</h3>
+        <button type="button" class="back-btn" style="margin: 0; padding: 4px 10px;" onclick="closeStaffModal()">✕</button>
+      </div>
+
+      <div class="lang-selector-bar">
+        <button type="button" class="lang-tab active" id="lang-en" onclick="setModalLanguage('en')">English</button>
+        <button type="button" class="lang-tab" id="lang-ru" onclick="setModalLanguage('ru')">Русский</button>
+        <button type="button" class="lang-tab" id="lang-he" onclick="setModalLanguage('he')">עברית</button>
+      </div>
+
+      <form id="modalStaffForm">
+        <input type="hidden" id="modal-p-row" value="">
+        <input type="hidden" id="modal-p-existing-photo" value="">
+
+        <label id="lbl-photo">Personnel Photo</label>
+        <div class="personnel-photo-box">
+          <div class="personnel-preview" id="modal-preview-box">
+            <span id="modal-placeholder" style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 4px;">No Photo</span>
+            <img id="modal-img-tag" style="display: none;" alt="Preview" />
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" id="btn-modal-cam" class="back-btn" style="margin: 0; background-color: #16a34a; color: white; border: none; text-align: center;" onclick="triggerModalCamera()">📷 Take Photo</button>
+            <button type="button" id="btn-modal-gal" class="back-btn" style="margin: 0; background-color: #2563eb; color: white; border: none; text-align: center;" onclick="triggerModalGallery()">🖼️ Upload File</button>
+            <button type="button" id="btn-modal-clear-photo" class="back-btn" style="margin: 0; background-color: #dc2626; color: white; border: none; text-align: center; display: none;" onclick="clearModalPhoto()">✕ Clear</button>
+          </div>
+        </div>
+
+        <input type="file" id="modal-camera-input" accept="image/*" capture="user" style="display: none;">
+        <input type="file" id="modal-gallery-input" accept="image/*" style="display: none;">
+
+        <label for="modal-p-name" id="lbl-name">Full Name</label>
+        <input type="text" id="modal-p-name" placeholder="e.g. Dmitry Ziskind" required>
+
+        <label for="modal-p-nickname" id="lbl-nickname">Nickname / Callsign</label>
+        <input type="text" id="modal-p-nickname" placeholder="e.g. Santa / Dima">
+
+        <label for="modal-p-position" id="lbl-position">Job Title / Position</label>
+        <input type="text" id="modal-p-position" placeholder="e.g. Director / Security Team" required>
+
+        <label for="modal-p-startdate" id="lbl-startdate">Start Date</label>
+        <input type="date" id="modal-p-startdate">
+
+        <label for="modal-p-phone" id="lbl-phone">Phone Number</label>
+        <input type="tel" id="modal-p-phone" placeholder="e.g. 052-519-4744">
+
+        <label for="modal-p-emergency" id="lbl-emergency">Emergency Contact Information</label>
+        <input type="text" id="modal-p-emergency" placeholder="e.g. Olga (Manager): 052-440-6540">
+
+        <label for="modal-p-allergies" id="lbl-allergies">Allergies / Medical Notes</label>
+        <input type="text" id="modal-p-allergies" placeholder="e.g. None / Penicillin" value="None">
+
+        <button type="submit" id="modalSubmitBtn" class="submit-btn" style="background-color: #0d9488; margin-top: 18px;">Save Staff Profile</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 10. RECCE PDF FULLSCREEN VIEWER -->
+  <div id="recceViewerModal" class="recce-viewer-overlay" style="display: none;">
+    <div class="recce-viewer-topbar">
+      <div class="recce-viewer-meta">
+        <span style="font-size: 1.5rem;">📄</span>
+        <h3 id="recceViewerTitle">Report Viewer</h3>
+      </div>
+      <div class="recce-viewer-actions">
+        <a id="recceViewerExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="recce-btn-secondary">↗ Open External</a>
+        <button type="button" class="recce-close-viewer-btn" onclick="closeRecceViewer()">✕ Close</button>
+      </div>
+    </div>
+    <div class="recce-iframe-container">
+      <iframe id="reccePdfFrame" src="about:blank" frameborder="0" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- CORE SCRIPT -->
+  <script>
+    var webAppUrl = "https://script.google.com/macros/s/AKfycby4-tNW7rooq0S7_gMQ2KVB9QwotwGjxiiO2CsJyuqH4tcVa30EQneFjPCjmLjn2r8xRQ/exec";
+
+    var base64Image = "", fileName = "", mimeType = "";
+    var reccePhotos = [];
+    var personnelPhotoBase64 = "";
+    var staffRosterCache = [];
+    var recceReportsCache = [];
+    var itemAttachmentsMap = {};
+
+    var recceMap = null;
+    var currentPinMode = 'venue';
+    var venueCoords = null;
+    var parkingCoords = null;
+    var venueMarker = null;
+    var parkingMarker = null;
+
+    var currentMapLayer = 'satellite';
+    var streetTileLayer = null;
+    var satelliteTileLayer = null;
+
+    var currentModalLang = 'en';
+    var modalI18n = {
+      en: {
+        addTitle: "Add Staff Profile", editTitle: "Edit: ", photo: "Personnel Photo",
+        takePhoto: "📷 Take Photo", uploadPhoto: "🖼️ Upload File", clearPhoto: "✕ Clear",
+        name: "Full Name", namePl: "e.g. Dmitry Ziskind", nickname: "Nickname / Callsign",
+        nicknamePl: "e.g. Santa / Dima", position: "Job Title / Position", positionPl: "e.g. Director / Security Team",
+        startDate: "Start Date", phone: "Phone Number", phonePl: "e.g. 052-519-4744",
+        emergency: "Emergency Contact Information", emergencyPl: "e.g. Olga (Manager): 052-440-6540",
+        allergies: "Allergies / Medical Notes", allergiesPl: "e.g. None / Penicillin",
+        submitBtn: "Save Staff Profile", savingBtn: "Saving..."
+      },
+      ru: {
+        addTitle: "Добавить сотрудника", editTitle: "Редактировать: ", photo: "Фотография сотрудника",
+        takePhoto: "📷 Сделать снимок", uploadPhoto: "🖼️ Загрузить файл", clearPhoto: "✕ Удалить",
+        name: "Полное имя", namePl: "напр. Дмитрий Зискинд", nickname: "Позывной / Прозвище",
+        nicknamePl: "напр. Santa / Дима", position: "Должность / Роль", positionPl: "напр. Начальник охраны",
+        startDate: "Дата начала работы", phone: "Номер телефона", phonePl: "напр. 052-519-4744",
+        emergency: "Экстренный контакт", emergencyPl: "напр. Ольга: 052-440-6540",
+        allergies: "Аллергии / Заметки", allergiesPl: "напр. Нет / Пенициллин",
+        submitBtn: "Сохранить профиль", savingBtn: "Сохранение..."
+      },
+      he: {
+        addTitle: "הוספת איש צוות", editTitle: "עריכת: ", photo: "תמונת איש צוות",
+        takePhoto: "📷 צלם תמונה", uploadPhoto: "🖼️ העלה קובץ", clearPhoto: "✕ מחק",
+        name: "שם מלא", namePl: "לדוגמה: דמיטרי זיסקינד", nickname: "אות קריאה",
+        nicknamePl: "לדוגמה: סנטה", position: "תפקיד", positionPl: "לדוגמה: מנהל אבטחה",
+        startDate: "תאריך התחלה", phone: "טלפון", phonePl: "לדוגמה: 052-519-4744",
+        emergency: "איש קשר לחירום", emergencyPl: "לדוגמה: אולגה: 052-440-6540",
+        allergies: "אלרגיות / רפואי", allergiesPl: "לדוגמה: אין / פניצילין",
+        submitBtn: "שמור פרופיל", savingBtn: "שומר..."
       }
-    }
-
-    var dict = modalI18n[lang];
-    var row = document.getElementById('modal-p-row').value;
-    var nameVal = document.getElementById('modal-p-name').value;
-    document.getElementById('staff-modal-title').innerText = row ? (dict.editTitle + (nameVal || '')) : dict.addTitle;
-
-    document.getElementById('lbl-photo').innerText = dict.photo;
-    document.getElementById('btn-modal-cam').innerText = dict.takePhoto;
-    document.getElementById('btn-modal-gal').innerText = dict.uploadPhoto;
-    document.getElementById('btn-modal-clear-photo').innerText = dict.clearPhoto;
-
-    document.getElementById('lbl-name').innerText = dict.name;
-    document.getElementById('modal-p-name').placeholder = dict.namePl;
-
-    document.getElementById('lbl-nickname').innerText = dict.nickname;
-    document.getElementById('modal-p-nickname').placeholder = dict.nicknamePl;
-
-    document.getElementById('lbl-position').innerText = dict.position;
-    document.getElementById('modal-p-position').placeholder = dict.positionPl;
-
-    document.getElementById('lbl-startdate').innerText = dict.startDate;
-    document.getElementById('lbl-phone').innerText = dict.phone;
-    document.getElementById('modal-p-phone').placeholder = dict.phonePl;
-
-    document.getElementById('lbl-emergency').innerText = dict.emergency;
-    document.getElementById('modal-p-emergency').placeholder = dict.emergencyPl;
-
-    document.getElementById('lbl-allergies').innerText = dict.allergies;
-    document.getElementById('modal-p-allergies').placeholder = dict.allergiesPl;
-
-    document.getElementById('modalSubmitBtn').innerText = dict.submitBtn;
-  };
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  function formatDateDisplay(dStr) {
-    if (!dStr) return '';
-    try {
-      var d = new Date(dStr);
-      if (isNaN(d.getTime())) return dStr;
-      return d.toLocaleDateString(undefined, {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      });
-    } catch(e) {
-      return dStr;
-    }
-  }
-
-  window.hideAllViews = function() {
-    var views = [
-      'dashboard-view', 'form-view', 'calendar-view', 'map-view',
-      'recce-view', 'open-items-view', 'personnel-view', 'recce-folder-view'
-    ];
-    views.forEach(function(v) {
-      var el = document.getElementById(v);
-      if (el) el.style.display = 'none';
-    });
-  };
-
-  window.openForm = function(entryType) {
-    window.hideAllViews();
-    document.getElementById('form-view').style.display = 'block';
-    var chosenType = entryType || 'Security Log';
-    var typeSelect = document.getElementById('type');
-    if (typeSelect) typeSelect.value = chosenType;
-    document.getElementById('form-title').innerText = chosenType;
-  };
-
-  window.openOpenItems = function() {
-    window.hideAllViews();
-    document.getElementById('open-items-view').style.display = 'block';
-    loadOpenItems();
-  };
-
-  window.openPersonnel = function() {
-    window.hideAllViews();
-    document.getElementById('personnel-view').style.display = 'block';
-    loadStaffRoster();
-  };
-
-  window.openCalendar = function() {
-    window.hideAllViews();
-    document.getElementById('calendar-view').style.display = 'block';
-  };
-
-  window.openMap = function() {
-    window.hideAllViews();
-    document.getElementById('map-view').style.display = 'block';
-  };
-
-  window.openRecce = function() {
-    window.hideAllViews();
-    document.getElementById('recce-view').style.display = 'block';
-    setTimeout(function() { initRecceMap(); }, 250);
-  };
-
-  window.openRecceFolder = function() {
-    window.hideAllViews();
-    document.getElementById('recce-folder-view').style.display = 'block';
-    loadRecceReports(false);
-  };
-
-  window.goBack = function() {
-    window.hideAllViews();
-    document.getElementById('dashboard-view').style.display = 'block';
-    var s1 = document.getElementById('status-message');
-    if (s1) s1.innerText = "";
-    var s2 = document.getElementById('recce-status-message');
-    if (s2) s2.innerText = "";
-  };
-
-  // =========================================================================
-  // SAFE CLIENT-SIDE IMAGE COMPRESSOR (Memory-leak proof on iPad WebKit)
-  // =========================================================================
-  function toBase64(file, maxDim, quality) {
-    maxDim = maxDim || 1200;
-    quality = quality || 0.65;
-
-    return new Promise(function(resolve, reject) {
-      if (!file) return reject(new Error("No file provided"));
-
-      var img = new Image();
-      var objectUrl = URL.createObjectURL(file);
-
-      img.onload = function() {
-        URL.revokeObjectURL(objectUrl); // Immediate cleanup of blob memory
-
-        var width = img.naturalWidth || img.width;
-        var height = img.naturalHeight || img.height;
-
-        if (width > height && width > maxDim) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else if (height > maxDim) {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-
-        var canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        var dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-        // Explicit context cleanup
-        ctx.clearRect(0, 0, width, height);
-        canvas.width = 1;
-        canvas.height = 1;
-
-        resolve(dataUrl);
-      };
-
-      img.onerror = function() {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Failed to load image into memory"));
-      };
-
-      img.src = objectUrl;
-    });
-  }
-
-  // ==========================================
-  // RECCE REPORTS FOLDER & FULLSCREEN VIEWER
-  // ==========================================
-  function loadRecceReports(forceReload) {
-    var statusDiv = document.getElementById('recce-folder-status');
-    var grid = document.getElementById('recce-folder-grid');
-
-    if (!forceReload && recceReportsCache && recceReportsCache.length > 0) {
-      statusDiv.innerText = "Showing " + recceReportsCache.length + " report(s):";
-      renderRecceButtons(recceReportsCache);
-      return;
-    }
-
-    statusDiv.innerText = "Syncing PDF reports from Google Drive...";
-    grid.innerHTML = "";
-
-    var scriptId = 'jsonp-recce-reports';
-    var oldScript = document.getElementById(scriptId);
-    if (oldScript) oldScript.remove();
-
-    window.handleRecceReportsCallback = function(response) {
-      if (!response || !response.reports || response.reports.length === 0) {
-        statusDiv.innerText = "No Recce PDF reports found in Google Drive folder.";
-        grid.innerHTML = '<div style="color: var(--text-secondary); padding: 20px; text-align: center; grid-column: 1 / -1;">No reports found.</div>';
-        recceReportsCache = [];
-        return;
-      }
-
-      recceReportsCache = response.reports;
-      statusDiv.innerText = "Showing " + recceReportsCache.length + " report(s):";
-      renderRecceButtons(recceReportsCache);
     };
 
-    var script = document.createElement('script');
-    script.id = scriptId;
-    script.src = webAppUrl + '?action=getRecceReports&callback=handleRecceReportsCallback&t=' + Date.now();
-    document.body.appendChild(script);
-  }
-
-  function renderRecceButtons(reports) {
-    var grid = document.getElementById('recce-folder-grid');
-    grid.innerHTML = "";
-
-    reports.forEach(function(report) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'recce-folder-card';
-
-      var cleanLabel = (report.label || report.name || "Site Report").replace(/\.pdf$/i, '').trim();
-
-      btn.onclick = function() {
-        var previewUrl = report.previewUrl || ("https://drive.google.com/file/d/" + report.id + "/preview");
-        openRecceViewer(cleanLabel, previewUrl, report.url);
-      };
-
-      btn.innerHTML = '<span class="recce-folder-icon">📍</span>' +
-                      '<span class="recce-folder-label">' + escapeHtml(cleanLabel) + '</span>';
-
-      grid.appendChild(btn);
-    });
-  }
-
-  window.filterRecceButtons = function() {
-    var input = document.getElementById('recce-folder-search');
-    var filter = (input ? input.value : '').toLowerCase();
-    var filtered = recceReportsCache.filter(function(r) {
-      var label = (r.label || r.name || '').toLowerCase();
-      return label.indexOf(filter) > -1;
-    });
-    renderRecceButtons(filtered);
-  };
-
-  window.openRecceViewer = function(title, previewUrl, originalUrl) {
-    var modal = document.getElementById('recceViewerModal');
-    var titleEl = document.getElementById('recceViewerTitle');
-    var frame = document.getElementById('reccePdfFrame');
-    var extLink = document.getElementById('recceViewerExternalLink');
-
-    titleEl.innerText = title;
-    extLink.href = originalUrl;
-    frame.src = previewUrl;
-
-    modal.style.display = 'flex';
-  };
-
-  window.closeRecceViewer = function() {
-    var modal = document.getElementById('recceViewerModal');
-    var frame = document.getElementById('reccePdfFrame');
-    modal.style.display = 'none';
-    frame.src = 'about:blank';
-  };
-
-  window.handleLogTypeChange = function(newType) {
-    document.getElementById('form-title').innerText = newType;
-  };
-
-  window.triggerLogCamera = function() {
-    var cam = document.getElementById('log-camera-input');
-    if (cam) cam.click();
-  };
-
-  window.triggerLogFile = function() {
-    var fi = document.getElementById('log-file-input');
-    if (fi) fi.click();
-  };
-
-  window.clearLogFile = function() {
-    base64Image = "";
-    fileName = "";
-    mimeType = "";
-    var cam = document.getElementById('log-camera-input');
-    var fi = document.getElementById('log-file-input');
-    if (cam) cam.value = "";
-    if (fi) fi.value = "";
-    var st = document.getElementById('log-file-status');
-    var nm = document.getElementById('log-file-name');
-    if (st) st.style.display = "none";
-    if (nm) nm.innerText = "";
-  };
-
-  function processSelectedLogFile(file) {
-    if (!file) return;
-
-    fileName = file.name;
-    mimeType = file.type || "application/octet-stream";
-
-    var statusBox = document.getElementById('log-file-status');
-    var nameSpan = document.getElementById('log-file-name');
-
-    if (file.type && file.type.startsWith('image/')) {
-      if (nameSpan) nameSpan.innerText = "⏳ Compressing: " + fileName;
-      if (statusBox) statusBox.style.display = "flex";
-
-      toBase64(file, 1200, 0.65).then(function(b64WithHeader) {
-        base64Image = b64WithHeader.split(',')[1];
-        mimeType = 'image/jpeg';
-        if (nameSpan) nameSpan.innerText = "📷 " + fileName + " (Optimized)";
-      }).catch(function(err) {
-        alert("Error processing photo: " + err.message);
-      });
-    } else {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        base64Image = e.target.result.split(',')[1];
-        if (nameSpan) nameSpan.innerText = "📄 " + fileName;
-        if (statusBox) statusBox.style.display = "flex";
-      };
-      reader.onerror = function() {
-        alert("Failed to read selected file.");
-      };
-      reader.readAsDataURL(file);
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
-  }
 
-  function loadStaffRoster() {
-    var statusDiv = document.getElementById('staff-status');
-    var tbody = document.getElementById('staff-roster-body');
-    statusDiv.innerText = "Syncing staff roster from Google Sheet...";
+    function formatDateDisplay(dStr) {
+      if (!dStr) return '';
+      try {
+        var d = new Date(dStr);
+        if (isNaN(d.getTime())) return dStr;
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } catch(e) { return dStr; }
+    }
 
-    var scriptId = 'jsonp-staff-roster';
-    var oldScript = document.getElementById(scriptId);
-    if (oldScript) oldScript.remove();
-
-    window.handleStaffRosterCallback = function(response) {
-      if (!response || !response.roster || response.roster.length === 0) {
-        statusDiv.innerText = "No staff records found.";
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No personnel records found.</td></tr>';
-        return;
-      }
-
-      staffRosterCache = response.roster.filter(function(r) { return !r.isEmpty; });
-      statusDiv.innerText = "Active Team Members (" + staffRosterCache.length + "):";
-      tbody.innerHTML = "";
-
-      staffRosterCache.forEach(function(member) {
-        var tr = document.createElement('tr');
-        tr.className = 'staff-row-clickable';
-
-        tr.addEventListener('click', function(e) {
-          if (e.target.closest('a')) return;
-          openEditStaffModal(member.rowIndex);
-        });
-
-        var initials = (member.name || "?").substring(0, 2).toUpperCase();
-        var hasPhoto = Boolean(member.photoUrl && member.photoUrl.trim() !== "");
-
-        var tdAvatar = document.createElement('td');
-        var avatarWrapper = document.createElement('div');
-        avatarWrapper.className = 'staff-avatar-wrapper';
-        avatarWrapper.title = hasPhoto ? "Tap to view Callsign" : "Tap to Edit";
-
-        if (hasPhoto) {
-          var img = document.createElement('img');
-          img.src = member.photoUrl;
-          img.className = 'staff-avatar-img';
-          img.alt = member.name || '';
-          img.onerror = function() {
-            this.parentElement.innerHTML = '<div class="staff-avatar-placeholder">' + initials + '</div>';
-          };
-          avatarWrapper.appendChild(img);
-        } else {
-          var placeholder = document.createElement('div');
-          placeholder.className = 'staff-avatar-placeholder';
-          placeholder.innerText = initials;
-          avatarWrapper.appendChild(placeholder);
-        }
-
-        avatarWrapper.addEventListener('click', function(e) {
-          e.stopPropagation();
-
-          if (!hasPhoto) {
-            openEditStaffModal(member.rowIndex);
-            return;
-          }
-
-          var existing = avatarWrapper.querySelector('.nickname-speech-bubble');
-          if (existing) {
-            existing.remove();
-            return;
-          }
-
-          document.querySelectorAll('.nickname-speech-bubble').forEach(function(b) { b.remove(); });
-
-          var displayText = member.nickname ? ("🏷️ " + member.nickname) : ("👤 " + (member.name || 'Staff'));
-          var bubble = document.createElement('div');
-          bubble.className = 'nickname-speech-bubble';
-          bubble.innerText = displayText;
-          avatarWrapper.appendChild(bubble);
-
-          setTimeout(function() {
-            if (bubble && bubble.parentNode) bubble.remove();
-          }, 2500);
-        });
-
-        tdAvatar.appendChild(avatarWrapper);
-        tr.appendChild(tdAvatar);
-
-        var tdName = document.createElement('td');
-        tdName.innerHTML = '<div style="font-weight: 600; color: #fff;">' + escapeHtml(member.name || 'Unknown') + '</div>';
-        tr.appendChild(tdName);
-
-        var tdRole = document.createElement('td');
-        tdRole.innerText = member.position || 'Staff';
-        tr.appendChild(tdRole);
-
-        var tdContact = document.createElement('td');
-        if (member.phone) {
-          var aPhone = document.createElement('a');
-          aPhone.href = 'tel:' + member.phone;
-          aPhone.className = 'staff-phone-link';
-          aPhone.innerText = '📞 ' + member.phone;
-          aPhone.addEventListener('click', function(e) { e.stopPropagation(); });
-          tdContact.appendChild(aPhone);
-        } else {
-          tdContact.innerText = '—';
-        }
-        tr.appendChild(tdContact);
-
-        var tdEmerg = document.createElement('td');
-        tdEmerg.style.fontSize = '12px';
-        tdEmerg.style.color = '#cbd5e1';
-        tdEmerg.innerText = member.emergency || '—';
-        tr.appendChild(tdEmerg);
-
-        tbody.appendChild(tr);
+    window.hideAllViews = function() {
+      ['dashboard-view', 'form-view', 'calendar-view', 'map-view', 'recce-view', 'open-items-view', 'personnel-view', 'recce-folder-view'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
       });
     };
 
-    var script = document.createElement('script');
-    script.id = scriptId;
-    script.src = webAppUrl + '?action=getStaffRoster&callback=handleStaffRosterCallback&t=' + Date.now();
-    document.body.appendChild(script);
-  }
-
-  window.openAddStaffModal = function() {
-    document.getElementById('modal-p-row').value = "";
-    document.getElementById('modal-p-existing-photo').value = "";
-    document.getElementById('modalStaffForm').reset();
-    window.clearModalPhoto();
-    window.setModalLanguage('en');
-    document.getElementById('staff-modal-overlay').style.display = "flex";
-  };
-
-  window.openEditStaffModal = function(rowIndex) {
-    var member = staffRosterCache.find(function(m) { return m.rowIndex === rowIndex; });
-    if (!member) return;
-
-    document.getElementById('modal-p-row').value = member.rowIndex;
-    document.getElementById('modal-p-existing-photo').value = member.photoUrl ? ('=IMAGE("' + member.photoUrl + '", 1)') : "";
-    document.getElementById('modal-p-name').value = member.name || "";
-    document.getElementById('modal-p-nickname').value = member.nickname || "";
-    document.getElementById('modal-p-position').value = member.position || "";
-    document.getElementById('modal-p-startdate').value = member.startDate || "";
-    document.getElementById('modal-p-phone').value = member.phone || "";
-    document.getElementById('modal-p-emergency').value = member.emergency || "";
-    document.getElementById('modal-p-allergies').value = member.allergies || "None";
-
-    personnelPhotoBase64 = "";
-    if (member.photoUrl) {
-      var img = document.getElementById('modal-img-tag');
-      img.src = member.photoUrl;
-      img.style.display = "block";
-      document.getElementById('modal-placeholder').style.display = "none";
-      document.getElementById('btn-modal-clear-photo').style.display = "block";
-    } else {
-      window.clearModalPhoto();
-    }
-
-    window.setModalLanguage(currentModalLang || 'en');
-    document.getElementById('staff-modal-overlay').style.display = "flex";
-  };
-
-  window.closeStaffModal = function() {
-    document.getElementById('staff-modal-overlay').style.display = "none";
-  };
-
-  window.closeStaffModalOnBackdrop = function(e) {
-    if (e.target.id === 'staff-modal-overlay') window.closeStaffModal();
-  };
-
-  window.triggerModalCamera = function() {
-    var el = document.getElementById('modal-camera-input');
-    if (el) el.click();
-  };
-
-  window.triggerModalGallery = function() {
-    var el = document.getElementById('modal-gallery-input');
-    if (el) el.click();
-  };
-
-  window.clearModalPhoto = function() {
-    personnelPhotoBase64 = "";
-    document.getElementById('modal-img-tag').style.display = "none";
-    document.getElementById('modal-img-tag').src = "";
-    document.getElementById('modal-placeholder').style.display = "block";
-    document.getElementById('btn-modal-clear-photo').style.display = "none";
-    document.getElementById('modal-p-existing-photo').value = "";
-  };
-
-  window.triggerActionCamera = function(rowIndex) {
-    var cam = document.getElementById('action-camera-input-' + rowIndex);
-    if (cam) {
-      cam.value = "";
-      cam.click();
-    }
-  };
-
-  window.triggerActionFilePicker = function(rowIndex) {
-    var picker = document.getElementById('action-file-input-' + rowIndex);
-    if (picker) {
-      picker.value = "";
-      picker.click();
-    }
-  };
-
-  // Sequential, non-blocking attachment optimizer
-  window.handleActionFiles = function(rowIndex, fileList) {
-    if (!fileList || fileList.length === 0) return;
-    if (!itemAttachmentsMap[rowIndex]) itemAttachmentsMap[rowIndex] = [];
-
-    var current = itemAttachmentsMap[rowIndex];
-    var remaining = 3 - current.length;
-
-    if (remaining <= 0) {
-      alert("Maximum of 3 attachments reached for this update.");
-      return;
-    }
-
-    var incoming = Array.from(fileList).slice(0, remaining);
-    var counter = document.getElementById('action-file-count-' + rowIndex);
-    if (counter) counter.innerText = "Optimizing attachments...";
-
-    var chain = Promise.resolve();
-
-    incoming.forEach(function(file) {
-      chain = chain.then(function() {
-        if (file.type && file.type.startsWith('image/')) {
-          return toBase64(file, 1200, 0.65).then(function(b64WithHeader) {
-            current.push({
-              name: file.name || ('photo_' + Date.now() + '.jpg'),
-              mimeType: 'image/jpeg',
-              base64: b64WithHeader.split(',')[1]
-            });
-            renderActionAttachments(rowIndex);
-          });
-        } else {
-          return new Promise(function(resolve, reject) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-              current.push({
-                name: file.name,
-                mimeType: file.type || 'application/octet-stream',
-                base64: e.target.result.split(',')[1]
-              });
-              renderActionAttachments(rowIndex);
-              resolve();
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-        }
-      });
-    });
-
-    chain.catch(function(err) {
-      console.error("Action item upload error:", err);
-      alert("Error attaching file: " + err.message);
-      renderActionAttachments(rowIndex);
-    });
-  };
-
-  window.removeActionAttachment = function(rowIndex, index) {
-    if (!itemAttachmentsMap[rowIndex]) return;
-    itemAttachmentsMap[rowIndex].splice(index, 1);
-    renderActionAttachments(rowIndex);
-  };
-
-  function renderActionAttachments(rowIndex) {
-    var container = document.getElementById('action-attachments-' + rowIndex);
-    var counter = document.getElementById('action-file-count-' + rowIndex);
-    var btnCam = document.getElementById('btn-action-cam-' + rowIndex);
-    var btnFile = document.getElementById('btn-action-file-' + rowIndex);
-
-    var files = itemAttachmentsMap[rowIndex] || [];
-    if (counter) counter.innerText = files.length + " / 3 attached";
-
-    var isFull = files.length >= 3;
-    if (btnCam) btnCam.disabled = isFull;
-    if (btnFile) btnFile.disabled = isFull;
-
-    if (!container) return;
-    container.innerHTML = "";
-
-    files.forEach(function(item, idx) {
-      var pill = document.createElement('div');
-      pill.className = 'item-attachment-pill';
-
-      var icon = item.mimeType.startsWith('image/') ? '🖼️' : '📄';
-      var nameSpan = document.createElement('span');
-      nameSpan.innerText = icon + ' ' + (item.name.length > 20 ? (item.name.substring(0, 18) + '...') : item.name);
-      nameSpan.title = item.name;
-
-      var removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'item-pill-remove';
-      removeBtn.innerText = '✕';
-      removeBtn.onclick = function() { window.removeActionAttachment(rowIndex, idx); };
-
-      pill.appendChild(nameSpan);
-      pill.appendChild(removeBtn);
-      container.appendChild(pill);
-    });
-  }
-
-  function loadOpenItems() {
-    var statusDiv = document.getElementById('open-items-status');
-    var listDiv = document.getElementById('open-items-list');
-    statusDiv.innerText = "Checking active items...";
-    listDiv.innerHTML = "";
-    itemAttachmentsMap = {};
-
-    var scriptId = 'jsonp-open-items';
-    var oldScript = document.getElementById(scriptId);
-    if (oldScript) oldScript.remove();
-
-    window.handleOpenItemsCallback = function(response) {
-      if (!response || !response.items || response.items.length === 0) {
-        statusDiv.innerText = "✓ All action items are resolved. No open items.";
-        return;
-      }
-
-      statusDiv.innerText = "Active Action Items (" + response.items.length + "):";
-      listDiv.innerHTML = "";
-
-      response.items.forEach(function(item) {
-        var card = document.createElement('div');
-        card.className = 'task-card';
-
-        var isPending = item.status.toLowerCase() === 'pending';
-        var badgeColor = isPending ? '#fb923c' : '#f87171';
-        var badgeBg = isPending ? 'rgba(251, 146, 60, 0.15)' : 'rgba(248, 113, 113, 0.15)';
-
-        var evidenceHtml = item.evidence 
-          ? '<div style="margin-top: 8px;"><a href="' + item.evidence + '" target="_blank" style="color: #60a5fa; font-weight: 600; font-size: 13px; text-decoration: none;">🔗 View Uploaded Evidence</a></div>'
-          : '';
-
-        var updates = [];
-        if (Array.isArray(item.updates)) {
-          updates = item.updates;
-        } else if (typeof item.updates === 'string' && item.updates.trim()) {
-          try { updates = JSON.parse(item.updates); } catch(e) {}
-        }
-
-        var updatesListHtml = updates.map(function(u) {
-          var updateAttHtml = '';
-          if (u.attachments && Array.isArray(u.attachments) && u.attachments.length > 0) {
-            updateAttHtml = '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">' +
-              u.attachments.map(function(att) {
-                return '<a href="' + (att.url || '#') + '" target="_blank" style="font-size:11px; color:#60a5fa; text-decoration:none; background:rgba(96,165,250,0.1); padding:2px 6px; border-radius:4px; border:1px solid #3b82f6;">📎 ' + escapeHtml(att.name || 'Attachment') + '</a>';
-              }).join('') +
-            '</div>';
-          }
-
-          return '<div class="update-bubble">' +
-                   '<div class="update-meta">' +
-                     '<span>' + escapeHtml(u.author || 'Operator') + '</span>' +
-                     '<span>' + formatDateDisplay(u.date) + '</span>' +
-                   '</div>' +
-                   '<div class="update-content">' + escapeHtml(u.text) + '</div>' +
-                   updateAttHtml +
-                 '</div>';
-        }).join('');
-
-        card.innerHTML = 
-          '<div style="display: flex; justify-content: space-between; align-items: center;">' +
-            '<span class="task-badge" style="background: ' + badgeBg + '; color: ' + badgeColor + '; border: 1px solid ' + badgeColor + ';">' + item.status + '</span>' +
-            '<span style="font-size: 12px; color: var(--text-secondary);">' + (item.date || '') + ' | ' + (item.name || 'Officer') + '</span>' +
-          '</div>' +
-          '<div style="font-size: 15px; font-weight: 600; margin: 10px 0 6px 0; color: #fff;">' + (item.type || 'Log Entry') + '</div>' +
-          '<div style="font-size: 14px; line-height: 1.5; color: #cbd5e1; white-space: pre-wrap; background: var(--card-bg); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color);">' + (item.remarks || 'No remarks provided.') + '</div>' +
-          evidenceHtml +
-          '<div class="updates-section">' +
-            '<div class="updates-header">Activity & Follow-ups</div>' +
-            '<div class="updates-list" id="updates-list-' + item.rowIndex + '">' +
-              updatesListHtml +
-            '</div>' +
-            '<div class="add-update-container">' +
-              '<textarea class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type update note or resolution progress..." rows="2" style="min-height: 60px;"></textarea>' +
-              '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">' +
-                '<div style="display: flex; gap: 6px; flex: 1;">' +
-                  '<button type="button" class="item-file-btn" id="btn-action-cam-' + item.rowIndex + '" style="background-color: #16a34a;" onclick="triggerActionCamera(' + item.rowIndex + ')">📷 Take Photo</button>' +
-                  '<button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color: #2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Upload Doc</button>' +
-                '</div>' +
-                '<span id="action-file-count-' + item.rowIndex + '" style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">0 / 3 attached</span>' +
-              '</div>' +
-              '<input type="file" id="action-camera-input-' + item.rowIndex + '" accept="image/*" capture="environment" style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
-              '<input type="file" id="action-file-input-' + item.rowIndex + '" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
-              '<div id="action-attachments-' + item.rowIndex + '" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>' +
-              '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" style="margin-top: 4px;" onclick="addLogUpdate(' + item.rowIndex + ')">Post Note Update</button>' +
-            '</div>' +
-          '</div>' +
-          '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark as Closed</button>';
-
-        listDiv.appendChild(card);
-      });
+    window.openForm = function(entryType) {
+      window.hideAllViews();
+      document.getElementById('form-view').style.display = 'block';
+      var chosenType = entryType || 'Security Log';
+      var typeSelect = document.getElementById('type');
+      if (typeSelect) typeSelect.value = chosenType;
+      document.getElementById('form-title').innerText = chosenType;
     };
 
-    var script = document.createElement('script');
-    script.id = scriptId;
-    script.src = webAppUrl + '?action=getOpenLogs&callback=handleOpenItemsCallback&t=' + Date.now();
-    document.body.appendChild(script);
-  }
-
-  window.addLogUpdate = function(rowIndex) {
-    var input = document.getElementById('update-input-' + rowIndex);
-    var updateText = input ? input.value.trim() : '';
-    var attachments = itemAttachmentsMap[rowIndex] || [];
-
-    if (!updateText && attachments.length === 0) {
-      alert("Please enter a note or attach files before posting.");
-      return;
-    }
-
-    var opNameInput = document.getElementById('active-operator-name');
-    var operatorName = (opNameInput && opNameInput.value.trim()) ? opNameInput.value.trim() : 'Operator';
-    var currentDateIso = new Date().toISOString();
-
-    var btn = document.getElementById('btn-update-' + rowIndex);
-    if (btn) {
-      btn.disabled = true;
-      btn.innerText = "Posting (" + attachments.length + " files)...";
-    }
-
-    var payload = {
-      action: "appendLogUpdate",
-      rowIndex: rowIndex,
-      author: operatorName,
-      date: currentDateIso,
-      text: updateText,
-      attachments: attachments
-    };
-
-    fetch(webAppUrl, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(payload)
-    }).then(function() {
-      var list = document.getElementById('updates-list-' + rowIndex);
-      if (list) {
-        var bubble = document.createElement('div');
-        bubble.className = 'update-bubble';
-
-        var attPreview = '';
-        if (attachments.length > 0) {
-          attPreview = '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">' +
-            attachments.map(function(att) {
-              return '<span style="font-size:11px; color:#60a5fa; background:rgba(96,165,250,0.1); padding:2px 6px; border-radius:4px; border:1px solid #3b82f6;">📎 ' + escapeHtml(att.name) + ' (Uploaded)</span>';
-            }).join('') +
-          '</div>';
-        }
-
-        bubble.innerHTML = 
-          '<div class="update-meta">' +
-            '<span>' + escapeHtml(payload.author) + '</span>' +
-            '<span>' + formatDateDisplay(payload.date) + '</span>' +
-          '</div>' +
-          '<div class="update-content">' + escapeHtml(payload.text) + '</div>' +
-          attPreview;
-        list.appendChild(bubble);
-      }
-
-      if (input) input.value = '';
-      itemAttachmentsMap[rowIndex] = [];
-      renderActionAttachments(rowIndex);
-
-      if (btn) {
-        btn.disabled = false;
-        btn.innerText = "Post Note Update";
-      }
-    }).catch(function(err) {
-      alert("Failed to post update: " + err.message);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerText = "Post Note Update";
-      }
-    });
-  };
-
-  window.closeLogItem = function(rowIndex) {
-    if (!confirm("Are you sure you want to mark this item as Closed?")) return;
-
-    var btn = document.getElementById('btn-close-' + rowIndex);
-    if (btn) {
-      btn.disabled = true;
-      btn.innerText = "Closing in Sheet...";
-      btn.style.backgroundColor = "#475569";
-    }
-
-    fetch(webAppUrl, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({
-        action: "closeLogItem",
-        rowIndex: rowIndex
-      })
-    }).then(function() {
-      alert("Item closed. Marked green in Google Sheet.");
+    window.openOpenItems = function() {
+      window.hideAllViews();
+      document.getElementById('open-items-view').style.display = 'block';
       loadOpenItems();
-    }).catch(function(err) {
-      alert("Error closing item: " + err.message);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerText = "✓ Mark as Closed";
-        btn.style.backgroundColor = "#15803d";
-      }
-    });
-  };
+    };
 
-  /* Leaflet Map & Layer Selection */
-  window.triggerCamera = function() {
-    var el = document.getElementById('recce-camera-input');
-    if (el) el.click();
-  };
+    window.openPersonnel = function() {
+      window.hideAllViews();
+      document.getElementById('personnel-view').style.display = 'block';
+      loadStaffRoster();
+    };
 
-  window.triggerGallery = function() {
-    var el = document.getElementById('recce-gallery-input');
-    if (el) el.click();
-  };
+    window.openCalendar = function() {
+      window.hideAllViews();
+      document.getElementById('calendar-view').style.display = 'block';
+    };
 
-  window.setPinMode = function(mode) {
-    currentPinMode = mode;
-    var btnVenue = document.getElementById('btn-mode-venue');
-    var btnParking = document.getElementById('btn-mode-parking');
-    var btnGps = document.getElementById('btn-gps-action');
+    window.openMap = function() {
+      window.hideAllViews();
+      document.getElementById('map-view').style.display = 'block';
+    };
 
-    if (mode === 'venue') {
-      btnVenue.style.backgroundColor = '#dc2626';
-      btnVenue.style.color = '#fff';
-      btnParking.style.backgroundColor = 'var(--panel-bg)';
-      btnParking.style.color = 'var(--text-secondary)';
-      btnGps.innerText = "🎯 Current GPS to Venue";
-    } else {
-      btnParking.style.backgroundColor = '#2563eb';
-      btnParking.style.color = '#fff';
-      btnVenue.style.backgroundColor = 'var(--panel-bg)';
-      btnVenue.style.color = 'var(--text-secondary)';
-      btnGps.innerText = "🎯 Current GPS to Parking";
+    window.openRecce = function() {
+      window.hideAllViews();
+      document.getElementById('recce-view').style.display = 'block';
+      setTimeout(initRecceMap, 250);
+    };
+
+    window.openRecceFolder = function() {
+      window.hideAllViews();
+      document.getElementById('recce-folder-view').style.display = 'block';
+      loadRecceReports(false);
+    };
+
+    window.goBack = function() {
+      window.hideAllViews();
+      document.getElementById('dashboard-view').style.display = 'block';
+      var s1 = document.getElementById('status-message');
+      if (s1) s1.innerText = "";
+      var s2 = document.getElementById('recce-status-message');
+      if (s2) s2.innerText = "";
+    };
+
+    function toBase64(file, maxDim, quality) {
+      maxDim = maxDim || 1200;
+      quality = quality || 0.65;
+      return new Promise(function(resolve, reject) {
+        if (!file) return reject(new Error("No file"));
+        var img = new Image();
+        var objectUrl = URL.createObjectURL(file);
+        img.onload = function() {
+          URL.revokeObjectURL(objectUrl);
+          var width = img.naturalWidth || img.width;
+          var height = img.naturalHeight || img.height;
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          var result = canvas.toDataURL('image/jpeg', quality);
+          ctx.clearRect(0, 0, width, height);
+          canvas.width = 1;
+          canvas.height = 1;
+          resolve(result);
+        };
+        img.onerror = function() {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("Image load failed"));
+        };
+        img.src = objectUrl;
+      });
     }
-  };
 
-  window.setMapLayer = function(layerType) {
-    currentMapLayer = layerType;
-    var btnStreets = document.getElementById('btn-layer-streets');
-    var btnSat = document.getElementById('btn-layer-satellite');
-
-    if (layerType === 'satellite') {
-      if (recceMap && streetTileLayer && satelliteTileLayer) {
-        recceMap.removeLayer(streetTileLayer);
-        satelliteTileLayer.addTo(recceMap);
-      }
-      if (btnSat) {
-        btnSat.style.backgroundColor = '#0d9488';
-        btnSat.style.color = '#fff';
-        btnSat.style.fontWeight = 'bold';
-        btnSat.style.border = 'none';
-      }
-      if (btnStreets) {
-        btnStreets.style.backgroundColor = 'var(--panel-bg)';
-        btnStreets.style.color = 'var(--text-secondary)';
-        btnStreets.style.fontWeight = 'normal';
-        btnStreets.style.border = '1px solid var(--border-color)';
-      }
-    } else {
-      if (recceMap && streetTileLayer && satelliteTileLayer) {
-        recceMap.removeLayer(satelliteTileLayer);
-        streetTileLayer.addTo(recceMap);
-      }
-      if (btnStreets) {
-        btnStreets.style.backgroundColor = '#2563eb';
-        btnStreets.style.color = '#fff';
-        btnStreets.style.fontWeight = 'bold';
-        btnStreets.style.border = 'none';
-      }
-      if (btnSat) {
-        btnSat.style.backgroundColor = 'var(--panel-bg)';
-        btnSat.style.color = 'var(--text-secondary)';
-        btnSat.style.fontWeight = 'normal';
-        btnSat.style.border = '1px solid var(--border-color)';
-      }
-    }
-  };
-
-  function initRecceMap() {
-    try {
-      var container = document.getElementById('recce-map-container');
-      if (!container || typeof L === 'undefined') return;
-
-      if (recceMap) {
-        recceMap.invalidateSize();
+    function loadRecceReports(forceReload) {
+      var statusDiv = document.getElementById('recce-folder-status');
+      var grid = document.getElementById('recce-folder-grid');
+      if (!forceReload && recceReportsCache.length > 0) {
+        statusDiv.innerText = "Showing " + recceReportsCache.length + " report(s):";
+        renderRecceButtons(recceReportsCache);
         return;
       }
+      statusDiv.innerText = "Syncing PDF reports from Google Drive...";
+      grid.innerHTML = "";
 
-      recceMap = L.map('recce-map-container', {
-        fadeAnimation: false,
-        zoomAnimation: false
-      }).setView([32.5206, 34.9037], 13);
+      var oldScript = document.getElementById('jsonp-recce-reports');
+      if (oldScript) oldScript.remove();
 
-      streetTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19
-      });
-
-      satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19
-      });
-
-      satelliteTileLayer.addTo(recceMap);
-
-      recceMap.on('click', function(e) {
-        handleMapClick(e.latlng.lat, e.latlng.lng);
-      });
-
-      setTimeout(function() {
-        if (recceMap) recceMap.invalidateSize();
-      }, 300);
-
-    } catch (err) {
-      console.warn("Leaflet map note:", err);
-    }
-  }
-
-  function handleMapClick(lat, lng) {
-    if (currentPinMode === 'venue') {
-      setVenuePin(lat, lng);
-    } else {
-      setParkingPin(lat, lng);
-    }
-    updateDisplay();
-  }
-
-  function setVenuePin(lat, lng) {
-    venueCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
-
-    if (typeof L !== 'undefined') {
-      var redIcon = L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      });
-
-      if (venueMarker) {
-        venueMarker.setLatLng([venueCoords.lat, venueCoords.lng]);
-      } else if (recceMap) {
-        venueMarker = L.marker([venueCoords.lat, venueCoords.lng], {
-          icon: redIcon,
-          title: "Venue"
-        }).addTo(recceMap).bindPopup("📍 Venue").openPopup();
-      }
-    }
-
-    document.getElementById('recce-venue-gmaps').value = 'https://www.google.com/maps?q=' + venueCoords.lat + ',' + venueCoords.lng;
-    if (!parkingCoords) {
-      document.getElementById('recce-waze').value = 'https://waze.com/ul?ll=' + venueCoords.lat + ',' + venueCoords.lng + '&navigate=yes';
-    }
-  }
-
-  function setParkingPin(lat, lng) {
-    parkingCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
-
-    if (typeof L !== 'undefined') {
-      var blueIcon = L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      });
-
-      if (parkingMarker) {
-        parkingMarker.setLatLng([parkingCoords.lat, parkingCoords.lng]);
-      } else if (recceMap) {
-        parkingMarker = L.marker([parkingCoords.lat, parkingCoords.lng], {
-          icon: blueIcon,
-          title: "Parking"
-        }).addTo(recceMap).bindPopup("🅿️ Parking").openPopup();
-      }
-    }
-
-    document.getElementById('recce-parking-gmaps').value = 'https://www.google.com/maps?q=' + parkingCoords.lat + ',' + parkingCoords.lng;
-    document.getElementById('recce-waze').value = 'https://waze.com/ul?ll=' + parkingCoords.lat + ',' + parkingCoords.lng + '&navigate=yes';
-  }
-
-  function updateDisplay() {
-    var display = document.getElementById('coords-display');
-    display.innerHTML = '📍 Venue: ' + (venueCoords ? (venueCoords.lat + ', ' + venueCoords.lng) : 'Not set (Tap map or search)') + '<br>' +
-                        '🅿️ Parking: ' + (parkingCoords ? (parkingCoords.lat + ', ' + parkingCoords.lng) : 'Not set (Switch mode, then tap map)');
-  }
-
-  window.clearLocation = function() {
-    venueCoords = null;
-    parkingCoords = null;
-    if (venueMarker && recceMap) { recceMap.removeLayer(venueMarker); venueMarker = null; }
-    if (parkingMarker && recceMap) { recceMap.removeLayer(parkingMarker); parkingMarker = null; }
-    document.getElementById('coords-display').innerHTML = '📍 Venue: Not set (Tap map or search)<br>🅿️ Parking: Not set (Switch mode, then tap map)';
-    document.getElementById('recce-venue-gmaps').value = "";
-    document.getElementById('recce-parking-gmaps').value = "";
-    document.getElementById('recce-waze').value = "";
-    var searchBox = document.getElementById('map-search-input');
-    if (searchBox) searchBox.value = "";
-    window.setPinMode('venue');
-  };
-
-  window.useCurrentLocation = function() {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
-      return;
-    }
-
-    var targetName = currentPinMode === 'venue' ? "Venue" : "Parking";
-    var coordsDisplay = document.getElementById('coords-display');
-    coordsDisplay.innerText = "Getting GPS location for " + targetName + "...";
-
-    navigator.geolocation.getCurrentPosition(
-      function(pos) {
-        var lat = pos.coords.latitude;
-        var lng = pos.coords.longitude;
-        if (recceMap) recceMap.setView([lat, lng], 16);
-        if (currentPinMode === 'venue') {
-          setVenuePin(lat, lng);
-        } else {
-          setParkingPin(lat, lng);
+      window.handleRecceReportsCallback = function(response) {
+        if (!response || !response.reports || response.reports.length === 0) {
+          statusDiv.innerText = "No Recce PDF reports found.";
+          grid.innerHTML = '<div style="color:var(--text-secondary);padding:20px;text-align:center;grid-column:1/-1;">No reports found.</div>';
+          recceReportsCache = [];
+          return;
         }
-        updateDisplay();
-      },
-      function(err) {
-        coordsDisplay.innerHTML = "⚠️ GPS error (" + err.message + "). Tap map directly.";
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  window.searchAddress = function() {
-    var query = document.getElementById('map-search-input').value.trim();
-    if (!query) {
-      alert("Please enter a location name or address.");
-      return;
-    }
-
-    var coordsDisplay = document.getElementById('coords-display');
-    coordsDisplay.innerText = 'Searching for "' + query + '"...';
-
-    var endpoint = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&accept-language=en&limit=1';
-    fetch(endpoint, { headers: { 'Accept': 'application/json' } })
-      .then(function(res) { return res.json(); })
-      .then(function(results) {
-        if (results && results.length > 0) {
-          var lat = parseFloat(results[0].lat);
-          var lng = parseFloat(results[0].lon);
-
-          if (recceMap) recceMap.setView([lat, lng], 16);
-
-          if (currentPinMode === 'venue') {
-            setVenuePin(lat, lng);
-            var locInput = document.getElementById("recce-location");
-            if (!locInput.value) {
-              locInput.value = results[0].display_name.split(',')[0];
-            }
-          } else {
-            setParkingPin(lat, lng);
-          }
-          updateDisplay();
-        } else {
-          alert("Location not found. Try adding a city name or tap the map directly.");
-        }
-      })
-      .catch(function() {
-        alert("Search failed. Place pin manually on the map.");
-      });
-  };
-
-  function renderPhotoPreviews() {
-    var previewGrid = document.getElementById('photo-preview-grid');
-    var countDisplay = document.getElementById('photo-count');
-    if (!previewGrid) return;
-    previewGrid.innerHTML = "";
-
-    reccePhotos.forEach(function(photo, index) {
-      var thumbWrapper = document.createElement('div');
-      thumbWrapper.style.position = 'relative';
-      thumbWrapper.style.width = '70px';
-      thumbWrapper.style.height = '70px';
-
-      var img = document.createElement('img');
-      img.src = 'data:' + photo.mimeType + ';base64,' + photo.base64;
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.objectFit = 'cover';
-      img.style.borderRadius = '6px';
-      img.style.border = '1px solid var(--border-color)';
-
-      var removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.innerText = '×';
-      removeBtn.style.position = 'absolute';
-      removeBtn.style.top = '-5px';
-      removeBtn.style.right = '-5px';
-      removeBtn.style.backgroundColor = '#dc2626';
-      removeBtn.style.color = 'white';
-      removeBtn.style.border = 'none';
-      removeBtn.style.borderRadius = '50%';
-      removeBtn.style.width = '20px';
-      removeBtn.style.height = '20px';
-      removeBtn.style.fontSize = '14px';
-      removeBtn.style.fontWeight = 'bold';
-      removeBtn.style.lineHeight = '18px';
-      removeBtn.style.padding = '0';
-      removeBtn.style.cursor = 'pointer';
-
-      removeBtn.onclick = function() {
-        reccePhotos.splice(index, 1);
-        renderPhotoPreviews();
-        if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
+        recceReportsCache = response.reports;
+        statusDiv.innerText = "Showing " + recceReportsCache.length + " report(s):";
+        renderRecceButtons(recceReportsCache);
       };
 
-      thumbWrapper.appendChild(img);
-      thumbWrapper.appendChild(removeBtn);
-      previewGrid.appendChild(thumbWrapper);
-    });
-  }
-
-  // Sequential, memory-safe recce photo handling
-  function handleIncomingFiles(fileList) {
-    var files = Array.from(fileList);
-    var countDisplay = document.getElementById('photo-count');
-    var availableSlots = 10 - reccePhotos.length;
-
-    if (availableSlots <= 0) {
-      alert("Maximum of 10 photos reached.");
-      return;
+      var script = document.createElement('script');
+      script.id = 'jsonp-recce-reports';
+      script.src = webAppUrl + '?action=getRecceReports&callback=handleRecceReportsCallback&t=' + Date.now();
+      document.body.appendChild(script);
     }
 
-    var batch = files.slice(0, availableSlots);
-    if (countDisplay) countDisplay.innerText = "Optimizing " + batch.length + " photo(s)...";
-
-    var chain = Promise.resolve();
-
-    batch.forEach(function(f, idx) {
-      chain = chain.then(function() {
-        if (countDisplay) countDisplay.innerText = "Optimizing photo (" + (idx + 1) + "/" + batch.length + ")...";
-        return toBase64(f, 1200, 0.65).then(function(b64WithHeader) {
-          reccePhotos.push({
-            base64: b64WithHeader.split(',')[1],
-            mimeType: "image/jpeg",
-            name: f.name || ('photo_' + Date.now() + '.jpg')
-          });
-          renderPhotoPreviews();
-        });
-      });
-    });
-
-    chain.then(function() {
-      if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
-    }).catch(function(err) {
-      console.error("Batch compression error:", err);
-      alert("Failed to process some images: " + err.message);
-      if (countDisplay) countDisplay.innerText = reccePhotos.length + " photo(s) attached";
-    });
-  }
-
-  // ==========================================================================
-  // EMERGENCY HOSPITAL LOCATOR LOGIC
-  // ==========================================================================
-  var REGIONAL_HOSPITALS = [
-    { name: "Hillel Yaffe Medical Center (Hadera)", lat: 32.449755, lng: 34.908492 },
-    { name: "Laniado Hospital (Netanya)", lat: 32.348611, lng: 34.857222 },
-    { name: "Rambam Health Care Campus (Haifa)", lat: 32.833333, lng: 34.986111 },
-    { name: "Bnai Zion Medical Center (Haifa)", lat: 32.810833, lng: 34.990278 },
-    { name: "Carmel Medical Center (Haifa)", lat: 32.795833, lng: 34.981944 },
-    { name: "Meir Medical Center (Kfar Saba)", lat: 32.179444, lng: 34.912500 }
-  ];
-
-  function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-    var R = 6371;
-    var dLat = (lat2 - lat1) * Math.PI / 180;
-    var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
-  window.findNearestHospital = function() {
-    var btn = document.getElementById('btn-find-hospital');
-    var card = document.getElementById('hospital-result-card');
-    var nameEl = document.getElementById('hospital-name');
-    var metaEl = document.getElementById('hospital-meta');
-    var btnWaze = document.getElementById('btn-hospital-waze');
-    var btnGmaps = document.getElementById('btn-hospital-gmaps');
-
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your device/browser.");
-      return;
-    }
-
-    btn.disabled = true;
-    btn.innerText = "⏳ Acquiring GPS & Routing...";
-    card.style.display = "block";
-    nameEl.innerText = "Acquiring satellite GPS...";
-    metaEl.innerText = "Locating emergency trauma bay...";
-
-    navigator.geolocation.getCurrentPosition(
-      function(pos) {
-        var userLat = pos.coords.latitude;
-        var userLng = pos.coords.longitude;
-
-        var closest = null;
-        var minDistance = Infinity;
-
-        REGIONAL_HOSPITALS.forEach(function(hosp) {
-          var dist = calculateDistanceKm(userLat, userLng, hosp.lat, hosp.lng);
-          if (dist < minDistance) {
-            minDistance = dist;
-            closest = hosp;
-          }
-        });
-
-        if (closest) {
-          var estDriveMinutes = Math.round((minDistance / 55) * 60) + 3;
-          nameEl.innerText = closest.name;
-          metaEl.innerText = "Straight-line: " + minDistance.toFixed(1) + " km | Est. drive: ~" + estDriveMinutes + " mins";
-
-          btnWaze.href = "https://waze.com/ul?ll=" + closest.lat + "," + closest.lng + "&navigate=yes";
-          btnGmaps.href = "https://www.google.com/maps/dir/?api=1&destination=" + closest.lat + "," + closest.lng + "&travelmode=driving";
-        } else {
-          nameEl.innerText = "No predefined hospital found";
-          metaEl.innerText = "Check network or search manually.";
-        }
-
-        btn.disabled = false;
-        btn.innerText = "🔄 Update Nearest Hospital";
-      },
-      function(err) {
-        btn.disabled = false;
-        btn.innerText = "🚨 Emergency: Locate Nearest Hospital";
-        nameEl.innerText = "GPS Error";
-        metaEl.innerText = "Could not get current coordinates: " + err.message;
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  window.onload = function() {
-    var d1 = document.getElementById('date');
-    if (d1) d1.valueAsDate = new Date();
-    var d2 = document.getElementById('recce-date');
-    if (d2) d2.valueAsDate = new Date();
-
-    // Emergency UI reset: Triple-tap brand logo resets view if overlay locks
-    var headerClicks = 0;
-    var logoEl = document.querySelector('.brand-header');
-    if (logoEl) {
-      logoEl.addEventListener('click', function() {
-        headerClicks++;
-        if (headerClicks >= 3) {
-          headerClicks = 0;
-          document.getElementById('staff-modal-overlay').style.display = 'none';
-          document.getElementById('recceViewerModal').style.display = 'none';
-          document.getElementById('reccePdfFrame').src = 'about:blank';
-          window.goBack();
-          alert("Safety Reset Triggered: Dashboard Unlocked.");
-        }
-        setTimeout(function() { headerClicks = 0; }, 1500);
+    function renderRecceButtons(reports) {
+      var grid = document.getElementById('recce-folder-grid');
+      grid.innerHTML = "";
+      reports.forEach(function(report) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'recce-folder-card';
+        var cleanLabel = (report.label || report.name || "Site Report").replace(/\.pdf$/i, '').trim();
+        btn.onclick = function() {
+          var previewUrl = report.previewUrl || ("https://drive.google.com/file/d/" + report.id + "/preview");
+          openRecceViewer(cleanLabel, previewUrl, report.url);
+        };
+        btn.innerHTML = '<span class="recce-folder-icon">📍</span><span class="recce-folder-label">' + escapeHtml(cleanLabel) + '</span>';
+        grid.appendChild(btn);
       });
     }
 
-    var logCam = document.getElementById('log-camera-input');
-    if (logCam) {
-      logCam.onchange = function(e) {
-        if (e.target.files.length > 0) processSelectedLogFile(e.target.files[0]);
-      };
-    }
+    window.filterRecceButtons = function() {
+      var filter = (document.getElementById('recce-folder-search').value || '').toLowerCase();
+      var filtered = recceReportsCache.filter(function(r) {
+        return (r.label || r.name || '').toLowerCase().indexOf(filter) > -1;
+      });
+      renderRecceButtons(filtered);
+    };
 
-    var logFiles = document.getElementById('log-file-input');
-    if (logFiles) {
-      logFiles.onchange = function(e) {
-        if (e.target.files.length > 0) processSelectedLogFile(e.target.files[0]);
-      };
-    }
+    window.openRecceViewer = function(title, previewUrl, originalUrl) {
+      document.getElementById('recceViewerTitle').innerText = title;
+      document.getElementById('recceViewerExternalLink').href = originalUrl;
+      document.getElementById('reccePdfFrame').src = previewUrl;
+      document.getElementById('recceViewerModal').style.display = 'flex';
+    };
 
-    function handleModalImage(file) {
+    window.closeRecceViewer = function() {
+      document.getElementById('recceViewerModal').style.display = 'none';
+      document.getElementById('reccePdfFrame').src = 'about:blank';
+    };
+
+    window.handleLogTypeChange = function(newType) {
+      document.getElementById('form-title').innerText = newType;
+    };
+
+    window.triggerLogCamera = function() {
+      var cam = document.getElementById('log-camera-input');
+      if (cam) cam.click();
+    };
+
+    window.triggerLogFile = function() {
+      var fi = document.getElementById('log-file-input');
+      if (fi) fi.click();
+    };
+
+    window.clearLogFile = function() {
+      base64Image = ""; fileName = ""; mimeType = "";
+      var cam = document.getElementById('log-camera-input');
+      var fi = document.getElementById('log-file-input');
+      if (cam) cam.value = "";
+      if (fi) fi.value = "";
+      var st = document.getElementById('log-file-status');
+      if (st) st.style.display = "none";
+    };
+
+    function processSelectedLogFile(file) {
       if (!file) return;
-      toBase64(file, 640, 0.75).then(function(b64) {
-        personnelPhotoBase64 = b64;
+      fileName = file.name;
+      mimeType = file.type || "application/octet-stream";
+      var statusBox = document.getElementById('log-file-status');
+      var nameSpan = document.getElementById('log-file-name');
+
+      if (file.type && file.type.startsWith('image/')) {
+        nameSpan.innerText = "⏳ Compressing: " + fileName;
+        statusBox.style.display = "flex";
+        toBase64(file, 1200, 0.65).then(function(b64) {
+          base64Image = b64.split(',')[1];
+          mimeType = 'image/jpeg';
+          nameSpan.innerText = "📷 " + fileName + " (Ready)";
+        }).catch(function(err) { alert("Photo error: " + err.message); });
+      } else {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          base64Image = e.target.result.split(',')[1];
+          nameSpan.innerText = "📄 " + fileName;
+          statusBox.style.display = "flex";
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function loadStaffRoster() {
+      var statusDiv = document.getElementById('staff-status');
+      var tbody = document.getElementById('staff-roster-body');
+      statusDiv.innerText = "Syncing staff roster...";
+
+      var oldScript = document.getElementById('jsonp-staff-roster');
+      if (oldScript) oldScript.remove();
+
+      window.handleStaffRosterCallback = function(response) {
+        if (!response || !response.roster || response.roster.length === 0) {
+          statusDiv.innerText = "No staff records found.";
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No records.</td></tr>';
+          return;
+        }
+        staffRosterCache = response.roster.filter(function(r) { return !r.isEmpty; });
+        statusDiv.innerText = "Active Team Members (" + staffRosterCache.length + "):";
+        tbody.innerHTML = "";
+
+        staffRosterCache.forEach(function(m) {
+          var tr = document.createElement('tr');
+          tr.className = 'staff-row-clickable';
+          tr.onclick = function(e) { if (!e.target.closest('a')) openEditStaffModal(m.rowIndex); };
+
+          var initials = (m.name || "?").substring(0, 2).toUpperCase();
+          var hasPhoto = Boolean(m.photoUrl && m.photoUrl.trim() !== "");
+
+          var tdAv = document.createElement('td');
+          var wrapper = document.createElement('div');
+          wrapper.className = 'staff-avatar-wrapper';
+
+          if (hasPhoto) {
+            var img = document.createElement('img');
+            img.src = m.photoUrl;
+            img.className = 'staff-avatar-img';
+            img.alt = m.name || '';
+            img.onerror = function() { this.parentElement.innerHTML = '<div class="staff-avatar-placeholder">' + initials + '</div>'; };
+            wrapper.appendChild(img);
+          } else {
+            var ph = document.createElement('div');
+            ph.className = 'staff-avatar-placeholder';
+            ph.innerText = initials;
+            wrapper.appendChild(ph);
+          }
+
+          wrapper.onclick = function(e) {
+            e.stopPropagation();
+            if (!hasPhoto) { openEditStaffModal(m.rowIndex); return; }
+            document.querySelectorAll('.nickname-speech-bubble').forEach(function(b) { b.remove(); });
+            var bubble = document.createElement('div');
+            bubble.className = 'nickname-speech-bubble';
+            bubble.innerText = m.nickname ? ("🏷️ " + m.nickname) : ("👤 " + (m.name || 'Staff'));
+            wrapper.appendChild(bubble);
+            setTimeout(function() { if (bubble.parentNode) bubble.remove(); }, 2500);
+          };
+
+          tdAv.appendChild(wrapper);
+          tr.appendChild(tdAv);
+
+          var tdName = document.createElement('td');
+          tdName.innerHTML = '<div style="font-weight:600;color:#fff;">' + escapeHtml(m.name || 'Unknown') + '</div>';
+          tr.appendChild(tdName);
+
+          var tdRole = document.createElement('td');
+          tdRole.innerText = m.position || 'Staff';
+          tr.appendChild(tdRole);
+
+          var tdContact = document.createElement('td');
+          if (m.phone) {
+            var a = document.createElement('a');
+            a.href = 'tel:' + m.phone;
+            a.className = 'staff-phone-link';
+            a.innerText = '📞 ' + m.phone;
+            a.onclick = function(e) { e.stopPropagation(); };
+            tdContact.appendChild(a);
+          } else { tdContact.innerText = '—'; }
+          tr.appendChild(tdContact);
+
+          var tdEmerg = document.createElement('td');
+          tdEmerg.style.fontSize = '12px';
+          tdEmerg.style.color = '#cbd5e1';
+          tdEmerg.innerText = m.emergency || '—';
+          tr.appendChild(tdEmerg);
+
+          tbody.appendChild(tr);
+        });
+      };
+
+      var script = document.createElement('script');
+      script.id = 'jsonp-staff-roster';
+      script.src = webAppUrl + '?action=getStaffRoster&callback=handleStaffRosterCallback&t=' + Date.now();
+      document.body.appendChild(script);
+    }
+
+    window.openAddStaffModal = function() {
+      document.getElementById('modal-p-row').value = "";
+      document.getElementById('modal-p-existing-photo').value = "";
+      document.getElementById('modalStaffForm').reset();
+      window.clearModalPhoto();
+      window.setModalLanguage('en');
+      document.getElementById('staff-modal-overlay').style.display = "flex";
+    };
+
+    window.openEditStaffModal = function(rowIndex) {
+      var m = staffRosterCache.find(function(item) { return item.rowIndex === rowIndex; });
+      if (!m) return;
+      document.getElementById('modal-p-row').value = m.rowIndex;
+      document.getElementById('modal-p-existing-photo').value = m.photoUrl ? ('=IMAGE("' + m.photoUrl + '", 1)') : "";
+      document.getElementById('modal-p-name').value = m.name || "";
+      document.getElementById('modal-p-nickname').value = m.nickname || "";
+      document.getElementById('modal-p-position').value = m.position || "";
+      document.getElementById('modal-p-startdate').value = m.startDate || "";
+      document.getElementById('modal-p-phone').value = m.phone || "";
+      document.getElementById('modal-p-emergency').value = m.emergency || "";
+      document.getElementById('modal-p-allergies').value = m.allergies || "None";
+
+      personnelPhotoBase64 = "";
+      if (m.photoUrl) {
         var img = document.getElementById('modal-img-tag');
-        img.src = b64;
+        img.src = m.photoUrl;
         img.style.display = "block";
         document.getElementById('modal-placeholder').style.display = "none";
         document.getElementById('btn-modal-clear-photo').style.display = "block";
-      }).catch(function(err) {
-        alert("Could not process photo: " + err.message);
+      } else {
+        window.clearModalPhoto();
+      }
+      window.setModalLanguage(currentModalLang || 'en');
+      document.getElementById('staff-modal-overlay').style.display = "flex";
+    };
+
+    window.closeStaffModal = function() { document.getElementById('staff-modal-overlay').style.display = "none"; };
+    window.closeStaffModalOnBackdrop = function(e) { if (e.target.id === 'staff-modal-overlay') window.closeStaffModal(); };
+    window.triggerModalCamera = function() { document.getElementById('modal-camera-input').click(); };
+    window.triggerModalGallery = function() { document.getElementById('modal-gallery-input').click(); };
+
+    window.clearModalPhoto = function() {
+      personnelPhotoBase64 = "";
+      var img = document.getElementById('modal-img-tag');
+      img.style.display = "none"; img.src = "";
+      document.getElementById('modal-placeholder').style.display = "block";
+      document.getElementById('btn-modal-clear-photo').style.display = "none";
+      document.getElementById('modal-p-existing-photo').value = "";
+    };
+
+    window.setModalLanguage = function(lang) {
+      currentModalLang = lang;
+      ['en', 'ru', 'he'].forEach(function(l) {
+        var el = document.getElementById('lang-' + l);
+        if (el) el.classList.toggle('active', l === lang);
+      });
+      var container = document.getElementById('modal-container');
+      if (container) container.classList.toggle('rtl-mode', lang === 'he');
+
+      var dict = modalI18n[lang];
+      var row = document.getElementById('modal-p-row').value;
+      var nameVal = document.getElementById('modal-p-name').value;
+      document.getElementById('staff-modal-title').innerText = row ? (dict.editTitle + (nameVal || '')) : dict.addTitle;
+      document.getElementById('lbl-photo').innerText = dict.photo;
+      document.getElementById('btn-modal-cam').innerText = dict.takePhoto;
+      document.getElementById('btn-modal-gal').innerText = dict.uploadPhoto;
+      document.getElementById('btn-modal-clear-photo').innerText = dict.clearPhoto;
+      document.getElementById('lbl-name').innerText = dict.name;
+      document.getElementById('modal-p-name').placeholder = dict.namePl;
+      document.getElementById('lbl-nickname').innerText = dict.nickname;
+      document.getElementById('modal-p-nickname').placeholder = dict.nicknamePl;
+      document.getElementById('lbl-position').innerText = dict.position;
+      document.getElementById('modal-p-position').placeholder = dict.positionPl;
+      document.getElementById('lbl-startdate').innerText = dict.startDate;
+      document.getElementById('lbl-phone').innerText = dict.phone;
+      document.getElementById('modal-p-phone').placeholder = dict.phonePl;
+      document.getElementById('lbl-emergency').innerText = dict.emergency;
+      document.getElementById('modal-p-emergency').placeholder = dict.emergencyPl;
+      document.getElementById('lbl-allergies').innerText = dict.allergies;
+      document.getElementById('modal-p-allergies').placeholder = dict.allergiesPl;
+      document.getElementById('modalSubmitBtn').innerText = dict.submitBtn;
+    };
+
+    window.triggerActionCamera = function(r) { document.getElementById('action-camera-input-' + r).click(); };
+    window.triggerActionFilePicker = function(r) { document.getElementById('action-file-input-' + r).click(); };
+
+    window.handleActionFiles = function(rowIndex, fileList) {
+      if (!fileList || fileList.length === 0) return;
+      if (!itemAttachmentsMap[rowIndex]) itemAttachmentsMap[rowIndex] = [];
+      var cur = itemAttachmentsMap[rowIndex];
+      var rem = 3 - cur.length;
+      if (rem <= 0) { alert("Max 3 files."); return; }
+      var incoming = Array.from(fileList).slice(0, rem);
+
+      var chain = Promise.resolve();
+      incoming.forEach(function(file) {
+        chain = chain.then(function() {
+          if (file.type && file.type.startsWith('image/')) {
+            return toBase64(file, 1200, 0.65).then(function(b64) {
+              cur.push({ name: file.name || ('photo_' + Date.now() + '.jpg'), mimeType: 'image/jpeg', base64: b64.split(',')[1] });
+              renderActionAttachments(rowIndex);
+            });
+          } else {
+            return new Promise(function(resolve) {
+              var r = new FileReader();
+              r.onload = function(e) {
+                cur.push({ name: file.name, mimeType: file.type || 'application/octet-stream', base64: e.target.result.split(',')[1] });
+                renderActionAttachments(rowIndex);
+                resolve();
+              };
+              r.readAsDataURL(file);
+            });
+          }
+        });
+      });
+    };
+
+    window.removeActionAttachment = function(rowIndex, idx) {
+      if (itemAttachmentsMap[rowIndex]) {
+        itemAttachmentsMap[rowIndex].splice(idx, 1);
+        renderActionAttachments(rowIndex);
+      }
+    };
+
+    function renderActionAttachments(rowIndex) {
+      var container = document.getElementById('action-attachments-' + rowIndex);
+      var counter = document.getElementById('action-file-count-' + rowIndex);
+      var btnCam = document.getElementById('btn-action-cam-' + rowIndex);
+      var btnFile = document.getElementById('btn-action-file-' + rowIndex);
+      var files = itemAttachmentsMap[rowIndex] || [];
+
+      if (counter) counter.innerText = files.length + " / 3 attached";
+      var full = files.length >= 3;
+      if (btnCam) btnCam.disabled = full;
+      if (btnFile) btnFile.disabled = full;
+      if (!container) return;
+      container.innerHTML = "";
+
+      files.forEach(function(f, idx) {
+        var pill = document.createElement('div');
+        pill.className = 'item-attachment-pill';
+        pill.innerHTML = '<span>' + (f.mimeType.startsWith('image/') ? '🖼️' : '📄') + ' ' + escapeHtml(f.name.substring(0, 16)) + '</span>';
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'item-pill-remove';
+        rm.innerText = '✕';
+        rm.onclick = function() { window.removeActionAttachment(rowIndex, idx); };
+        pill.appendChild(rm);
+        container.appendChild(pill);
       });
     }
 
-    var mCam = document.getElementById('modal-camera-input');
-    if (mCam) {
-      mCam.onchange = function(e) {
-        if (e.target.files.length > 0) {
-          handleModalImage(e.target.files[0]);
-          mCam.value = "";
+    function loadOpenItems() {
+      var statusDiv = document.getElementById('open-items-status');
+      var listDiv = document.getElementById('open-items-list');
+      statusDiv.innerText = "Loading open items...";
+      listDiv.innerHTML = "";
+      itemAttachmentsMap = {};
+
+      var oldScript = document.getElementById('jsonp-open-items');
+      if (oldScript) oldScript.remove();
+
+      window.handleOpenItemsCallback = function(response) {
+        if (!response || !response.items || response.items.length === 0) {
+          statusDiv.innerText = "✓ All action items are resolved.";
+          return;
         }
-      };
-    }
+        statusDiv.innerText = "Active Action Items (" + response.items.length + "):";
+        listDiv.innerHTML = "";
 
-    var mGal = document.getElementById('modal-gallery-input');
-    if (mGal) {
-      mGal.onchange = function(e) {
-        if (e.target.files.length > 0) {
-          handleModalImage(e.target.files[0]);
-          mGal.value = "";
-        }
-      };
-    }
+        response.items.forEach(function(item) {
+          var card = document.createElement('div');
+          card.className = 'task-card';
+          var isPending = (item.status || '').toLowerCase() === 'pending';
+          var badgeColor = isPending ? '#fb923c' : '#f87171';
+          var badgeBg = isPending ? 'rgba(251, 146, 60, 0.15)' : 'rgba(248, 113, 113, 0.15)';
 
-    var modalForm = document.getElementById("modalStaffForm");
-    if (modalForm) {
-      modalForm.onsubmit = function(e) {
-        e.preventDefault();
-        var btn = document.getElementById("modalSubmitBtn");
-        var dict = modalI18n[currentModalLang || 'en'];
-        btn.disabled = true;
-        btn.innerText = dict.savingBtn;
-        btn.style.backgroundColor = "#475569";
+          var evLink = item.evidence ? '<div style="margin-top:8px;"><a href="' + item.evidence + '" target="_blank" style="color:#60a5fa;font-weight:600;font-size:13px;text-decoration:none;">🔗 Evidence Link</a></div>' : '';
 
-        var payload = {
-          action: "saveStaffProfile",
-          rowIndex: document.getElementById("modal-p-row").value || "",
-          existingPhotoFormula: document.getElementById("modal-p-existing-photo").value || "",
-          photoBase64: personnelPhotoBase64,
-          name: document.getElementById("modal-p-name").value.trim(),
-          nickname: document.getElementById("modal-p-nickname").value.trim(),
-          jobTitle: document.getElementById("modal-p-position").value.trim(),
-          startDate: document.getElementById("modal-p-startdate").value,
-          phone: document.getElementById("modal-p-phone").value.trim(),
-          emergency: document.getElementById("modal-p-emergency").value.trim(),
-          allergies: document.getElementById("modal-p-allergies").value.trim()
-        };
+          var updates = [];
+          if (Array.isArray(item.updates)) updates = item.updates;
+          else if (typeof item.updates === 'string' && item.updates.trim()) {
+            try { updates = JSON.parse(item.updates); } catch(e){}
+          }
 
-        fetch(webAppUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        }).then(function() {
-          alert("Staff profile saved successfully.");
-          btn.disabled = false;
-          btn.innerText = dict.submitBtn;
-          btn.style.backgroundColor = "#0d9488";
-          window.closeStaffModal();
-          loadStaffRoster();
-        }).catch(function(err) {
-          alert("Upload error: " + err.message);
-          btn.disabled = false;
-          btn.innerText = dict.submitBtn;
-          btn.style.backgroundColor = "#0d9488";
+          var updatesHtml = updates.map(function(u) {
+            var atts = (u.attachments || []).map(function(a) {
+              return '<a href="' + (a.url || '#') + '" target="_blank" style="font-size:11px;color:#60a5fa;text-decoration:none;background:rgba(96,165,250,0.1);padding:2px 6px;border-radius:4px;border:1px solid #3b82f6;">📎 ' + escapeHtml(a.name || 'Doc') + '</a>';
+            }).join('');
+            return '<div class="update-bubble"><div class="update-meta"><span>' + escapeHtml(u.author || 'Officer') + '</span><span>' + formatDateDisplay(u.date) + '</span></div><div class="update-content">' + escapeHtml(u.text) + '</div>' + (atts ? '<div style="display:flex;gap:6px;margin-top:6px;">' + atts + '</div>' : '') + '</div>';
+          }).join('');
+
+          card.innerHTML = 
+            '<div style="display:flex;justify-content:space-between;align-items:center;"><span class="task-badge" style="background:' + badgeBg + ';color:' + badgeColor + ';border:1px solid ' + badgeColor + ';">' + item.status + '</span><span style="font-size:12px;color:var(--text-secondary);">' + (item.date || '') + ' | ' + (item.name || '') + '</span></div>' +
+            '<div style="font-size:15px;font-weight:600;margin:10px 0 6px 0;color:#fff;">' + (item.type || 'Log') + '</div>' +
+            '<div style="font-size:14px;line-height:1.5;color:#cbd5e1;white-space:pre-wrap;background:var(--card-bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border-color);">' + (item.remarks || 'No remarks') + '</div>' +
+            evLink +
+            '<div class="updates-section"><div class="updates-header">Activity</div><div class="updates-list" id="updates-list-' + item.rowIndex + '">' + updatesHtml + '</div>' +
+            '<div class="add-update-container"><textarea class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type follow-up note..." rows="2"></textarea>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;"><div style="display:flex;gap:6px;flex:1;"><button type="button" class="item-file-btn" id="btn-action-cam-' + item.rowIndex + '" style="background-color:#16a34a;" onclick="triggerActionCamera(' + item.rowIndex + ')">📷 Photo</button><button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color:#2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Doc</button></div><span id="action-file-count-' + item.rowIndex + '" style="font-size:11px;color:var(--text-secondary);margin-left:8px;">0 / 3</span></div>' +
+            '<input type="file" id="action-camera-input-' + item.rowIndex + '" accept="image/*" capture="environment" style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
+            '<input type="file" id="action-file-input-' + item.rowIndex + '" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
+            '<div id="action-attachments-' + item.rowIndex + '" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>' +
+            '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" onclick="addLogUpdate(' + item.rowIndex + ')">Post Update</button></div></div>' +
+            '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark Closed</button>';
+
+          listDiv.appendChild(card);
         });
       };
+
+      var script = document.createElement('script');
+      script.id = 'jsonp-open-items';
+      script.src = webAppUrl + '?action=getOpenLogs&callback=handleOpenItemsCallback&t=' + Date.now();
+      document.body.appendChild(script);
     }
 
-    var cameraInput = document.getElementById('recce-camera-input');
-    if (cameraInput) {
-      cameraInput.onchange = function(e) {
-        if (e.target.files.length > 0) {
-          handleIncomingFiles(e.target.files);
-          cameraInput.value = "";
+    window.addLogUpdate = function(rowIndex) {
+      var input = document.getElementById('update-input-' + rowIndex);
+      var text = input ? input.value.trim() : '';
+      var atts = itemAttachmentsMap[rowIndex] || [];
+      if (!text && atts.length === 0) { alert("Please type a note or attach files."); return; }
+
+      var op = (document.getElementById('active-operator-name').value || 'Operator').trim();
+      var btn = document.getElementById('btn-update-' + rowIndex);
+      if (btn) { btn.disabled = true; btn.innerText = "Posting..."; }
+
+      var payload = { action: "appendLogUpdate", rowIndex: rowIndex, author: op, date: new Date().toISOString(), text: text, attachments: atts };
+      fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) })
+        .then(function() {
+          input.value = "";
+          itemAttachmentsMap[rowIndex] = [];
+          renderActionAttachments(rowIndex);
+          if (btn) { btn.disabled = false; btn.innerText = "Post Update"; }
+          loadOpenItems();
+        }).catch(function(e) { alert("Error: " + e.message); if (btn) { btn.disabled = false; btn.innerText = "Post Update"; } });
+    };
+
+    window.closeLogItem = function(rowIndex) {
+      if (!confirm("Close this task?")) return;
+      var btn = document.getElementById('btn-close-' + rowIndex);
+      if (btn) { btn.disabled = true; btn.innerText = "Closing..."; }
+      fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "closeLogItem", rowIndex: rowIndex }) })
+        .then(function() { loadOpenItems(); })
+        .catch(function(e) { alert("Error: " + e.message); if (btn) { btn.disabled = false; btn.innerText = "✓ Mark Closed"; } });
+    };
+
+    window.triggerCamera = function() { document.getElementById('recce-camera-input').click(); };
+    window.triggerGallery = function() { document.getElementById('recce-gallery-input').click(); };
+
+    window.setPinMode = function(mode) {
+      currentPinMode = mode;
+      var bv = document.getElementById('btn-mode-venue');
+      var bp = document.getElementById('btn-mode-parking');
+      var bg = document.getElementById('btn-gps-action');
+      if (mode === 'venue') {
+        bv.style.backgroundColor = '#dc2626'; bv.style.color = '#fff';
+        bp.style.backgroundColor = 'var(--panel-bg)'; bp.style.color = 'var(--text-secondary)';
+        bg.innerText = "🎯 Current GPS to Venue";
+      } else {
+        bp.style.backgroundColor = '#2563eb'; bp.style.color = '#fff';
+        bv.style.backgroundColor = 'var(--panel-bg)'; bv.style.color = 'var(--text-secondary)';
+        bg.innerText = "🎯 Current GPS to Parking";
+      }
+    };
+
+    window.setMapLayer = function(type) {
+      currentMapLayer = type;
+      var bStr = document.getElementById('btn-layer-streets');
+      var bSat = document.getElementById('btn-layer-satellite');
+      if (type === 'satellite') {
+        if (recceMap && streetTileLayer && satelliteTileLayer) {
+          recceMap.removeLayer(streetTileLayer); satelliteTileLayer.addTo(recceMap);
         }
-      };
-    }
-
-    var galleryInput = document.getElementById('recce-gallery-input');
-    if (galleryInput) {
-      galleryInput.onchange = function(e) {
-        if (e.target.files.length > 0) {
-          handleIncomingFiles(e.target.files);
-          galleryInput.value = "";
+        bSat.style.backgroundColor = '#0d9488'; bSat.style.color = '#fff';
+        bStr.style.backgroundColor = 'var(--panel-bg)'; bStr.style.color = 'var(--text-secondary)';
+      } else {
+        if (recceMap && streetTileLayer && satelliteTileLayer) {
+          recceMap.removeLayer(satelliteTileLayer); streetTileLayer.addTo(recceMap);
         }
-      };
+        bStr.style.backgroundColor = '#2563eb'; bStr.style.color = '#fff';
+        bSat.style.backgroundColor = 'var(--panel-bg)'; bSat.style.color = 'var(--text-secondary)';
+      }
+    };
+
+    function initRecceMap() {
+      try {
+        var container = document.getElementById('recce-map-container');
+        if (!container || typeof L === 'undefined') return;
+        if (recceMap) { recceMap.invalidateSize(); return; }
+
+        recceMap = L.map('recce-map-container', { fadeAnimation: false, zoomAnimation: false }).setView([32.5206, 34.9037], 13);
+        streetTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+        satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+        satelliteTileLayer.addTo(recceMap);
+        recceMap.on('click', function(e) { handleMapClick(e.latlng.lat, e.latlng.lng); });
+        setTimeout(function() { if (recceMap) recceMap.invalidateSize(); }, 300);
+      } catch (err) { console.warn("Map init:", err); }
     }
 
-    var searchField = document.getElementById('map-search-input');
-    if (searchField) {
-      searchField.onkeydown = function(e) {
-        if (e.key === 'Enter') {
+    function handleMapClick(lat, lng) {
+      if (currentPinMode === 'venue') setVenuePin(lat, lng);
+      else setParkingPin(lat, lng);
+      updateDisplay();
+    }
+
+    function setVenuePin(lat, lng) {
+      venueCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
+      if (typeof L !== 'undefined') {
+        var icon = L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+        if (venueMarker) venueMarker.setLatLng([venueCoords.lat, venueCoords.lng]);
+        else if (recceMap) venueMarker = L.marker([venueCoords.lat, venueCoords.lng], { icon: icon }).addTo(recceMap).bindPopup("📍 Venue").openPopup();
+      }
+      document.getElementById('recce-venue-gmaps').value = 'https://www.google.com/maps?q=' + venueCoords.lat + ',' + venueCoords.lng;
+      if (!parkingCoords) document.getElementById('recce-waze').value = 'https://waze.com/ul?ll=' + venueCoords.lat + ',' + venueCoords.lng + '&navigate=yes';
+    }
+
+    function setParkingPin(lat, lng) {
+      parkingCoords = { lat: Number(lat).toFixed(6), lng: Number(lng).toFixed(6) };
+      if (typeof L !== 'undefined') {
+        var icon = L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+        if (parkingMarker) parkingMarker.setLatLng([parkingCoords.lat, parkingCoords.lng]);
+        else if (recceMap) parkingMarker = L.marker([parkingCoords.lat, parkingCoords.lng], { icon: icon }).addTo(recceMap).bindPopup("🅿️ Parking").openPopup();
+      }
+      document.getElementById('recce-parking-gmaps').value = 'https://www.google.com/maps?q=' + parkingCoords.lat + ',' + parkingCoords.lng;
+      document.getElementById('recce-waze').value = 'https://waze.com/ul?ll=' + parkingCoords.lat + ',' + parkingCoords.lng + '&navigate=yes';
+    }
+
+    function updateDisplay() {
+      document.getElementById('coords-display').innerHTML =
+        '📍 Venue: ' + (venueCoords ? (venueCoords.lat + ', ' + venueCoords.lng) : 'Not set (Tap map or search)') + '<br>' +
+        '🅿️ Parking: ' + (parkingCoords ? (parkingCoords.lat + ', ' + parkingCoords.lng) : 'Not set (Switch mode, then tap map)');
+    }
+
+    window.clearLocation = function() {
+      venueCoords = null; parkingCoords = null;
+      if (venueMarker && recceMap) { recceMap.removeLayer(venueMarker); venueMarker = null; }
+      if (parkingMarker && recceMap) { recceMap.removeLayer(parkingMarker); parkingMarker = null; }
+      document.getElementById('coords-display').innerHTML = '📍 Venue: Not set<br>🅿️ Parking: Not set';
+      document.getElementById('recce-venue-gmaps').value = "";
+      document.getElementById('recce-parking-gmaps').value = "";
+      document.getElementById('recce-waze').value = "";
+      window.setPinMode('venue');
+    };
+
+    window.useCurrentLocation = function() {
+      if (!navigator.geolocation) { alert("GPS unavailable."); return; }
+      document.getElementById('coords-display').innerText = "Acquiring GPS...";
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        if (recceMap) recceMap.setView([lat, lng], 16);
+        if (currentPinMode === 'venue') setVenuePin(lat, lng);
+        else setParkingPin(lat, lng);
+        updateDisplay();
+      }, function(e) { alert("GPS Error: " + e.message); }, { enableHighAccuracy: true, timeout: 10000 });
+    };
+
+    window.searchAddress = function() {
+      var query = document.getElementById('map-search-input').value.trim();
+      if (!query) return;
+      document.getElementById('coords-display').innerText = 'Searching for "' + query + '"...';
+      fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=1')
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (res && res.length > 0) {
+            var lat = parseFloat(res[0].lat), lng = parseFloat(res[0].lon);
+            if (recceMap) recceMap.setView([lat, lng], 16);
+            if (currentPinMode === 'venue') {
+              setVenuePin(lat, lng);
+              var lIn = document.getElementById("recce-location");
+              if (!lIn.value) lIn.value = res[0].display_name.split(',')[0];
+            } else { setParkingPin(lat, lng); }
+            updateDisplay();
+          } else { alert("Address not found."); }
+        }).catch(function() { alert("Search failed."); });
+    };
+
+    function renderPhotoPreviews() {
+      var grid = document.getElementById('photo-preview-grid');
+      var count = document.getElementById('photo-count');
+      if (!grid) return;
+      grid.innerHTML = "";
+      reccePhotos.forEach(function(p, i) {
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;width:70px;height:70px;';
+        var img = document.createElement('img');
+        img.src = 'data:' + p.mimeType + ';base64,' + p.base64;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:6px;';
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.innerText = '×';
+        rm.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#dc2626;color:white;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;';
+        rm.onclick = function() { reccePhotos.splice(i, 1); renderPhotoPreviews(); };
+        wrap.appendChild(img); wrap.appendChild(rm); grid.appendChild(wrap);
+      });
+      if (count) count.innerText = reccePhotos.length + " photo(s) attached";
+    }
+
+    function handleIncomingFiles(fileList) {
+      var files = Array.from(fileList);
+      var rem = 10 - reccePhotos.length;
+      if (rem <= 0) { alert("Max 10 photos."); return; }
+      var batch = files.slice(0, rem);
+
+      var chain = Promise.resolve();
+      batch.forEach(function(f) {
+        chain = chain.then(function() {
+          return toBase64(f, 1200, 0.65).then(function(b64) {
+            reccePhotos.push({ base64: b64.split(',')[1], mimeType: "image/jpeg", name: f.name || ('photo_' + Date.now() + '.jpg') });
+            renderPhotoPreviews();
+          });
+        });
+      });
+    }
+
+    var REGIONAL_HOSPITALS = [
+      { name: "Hillel Yaffe Medical Center (Hadera)", lat: 32.449755, lng: 34.908492 },
+      { name: "Laniado Hospital (Netanya)", lat: 32.348611, lng: 34.857222 },
+      { name: "Rambam Health Care Campus (Haifa)", lat: 32.833333, lng: 34.986111 },
+      { name: "Bnai Zion Medical Center (Haifa)", lat: 32.810833, lng: 34.990278 },
+      { name: "Carmel Medical Center (Haifa)", lat: 32.795833, lng: 34.981944 },
+      { name: "Meir Medical Center (Kfar Saba)", lat: 32.179444, lng: 34.912500 }
+    ];
+
+    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+      var R = 6371;
+      var dLat = (lat2 - lat1) * Math.PI / 180;
+      var dLon = (lon2 - lon1) * Math.PI / 180;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    window.findNearestHospital = function() {
+      var btn = document.getElementById('btn-find-hospital');
+      var card = document.getElementById('hospital-result-card');
+      if (!navigator.geolocation) { alert("GPS unavailable."); return; }
+      btn.disabled = true; btn.innerText = "⏳ Locating..."; card.style.display = "block";
+
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var uLat = pos.coords.latitude, uLng = pos.coords.longitude;
+        var closest = null, minD = Infinity;
+        REGIONAL_HOSPITALS.forEach(function(h) {
+          var d = calculateDistanceKm(uLat, uLng, h.lat, h.lng);
+          if (d < minD) { minD = d; closest = h; }
+        });
+        if (closest) {
+          document.getElementById('hospital-name').innerText = closest.name;
+          document.getElementById('hospital-meta').innerText = minD.toFixed(1) + " km | ~" + (Math.round((minD/55)*60) + 3) + " mins drive";
+          document.getElementById('btn-hospital-waze').href = "https://waze.com/ul?ll=" + closest.lat + "," + closest.lng + "&navigate=yes";
+          document.getElementById('btn-hospital-gmaps').href = "https://www.google.com/maps/dir/?api=1&destination=" + closest.lat + "," + closest.lng;
+        }
+        btn.disabled = false; btn.innerText = "🔄 Update Nearest Hospital";
+      }, function(e) { btn.disabled = false; alert("GPS: " + e.message); }, { enableHighAccuracy: true, timeout: 10000 });
+    };
+
+    window.onload = function() {
+      var d1 = document.getElementById('date'); if (d1) d1.valueAsDate = new Date();
+      var d2 = document.getElementById('recce-date'); if (d2) d2.valueAsDate = new Date();
+
+      var headerClicks = 0;
+      var logo = document.querySelector('.brand-header');
+      if (logo) {
+        logo.onclick = function() {
+          headerClicks++;
+          if (headerClicks >= 3) {
+            headerClicks = 0;
+            document.getElementById('staff-modal-overlay').style.display = 'none';
+            document.getElementById('recceViewerModal').style.display = 'none';
+            window.goBack();
+          }
+          setTimeout(function() { headerClicks = 0; }, 1500);
+        };
+      }
+
+      var lCam = document.getElementById('log-camera-input');
+      if (lCam) lCam.onchange = function(e) { if (e.target.files.length) processSelectedLogFile(e.target.files[0]); };
+      var lFile = document.getElementById('log-file-input');
+      if (lFile) lFile.onchange = function(e) { if (e.target.files.length) processSelectedLogFile(e.target.files[0]); };
+
+      function handleModalImg(file) {
+        if (!file) return;
+        toBase64(file, 640, 0.75).then(function(b64) {
+          personnelPhotoBase64 = b64;
+          var img = document.getElementById('modal-img-tag');
+          img.src = b64; img.style.display = "block";
+          document.getElementById('modal-placeholder').style.display = "none";
+          document.getElementById('btn-modal-clear-photo').style.display = "block";
+        });
+      }
+
+      var mC = document.getElementById('modal-camera-input');
+      if (mC) mC.onchange = function(e) { if (e.target.files.length) handleModalImg(e.target.files[0]); };
+      var mG = document.getElementById('modal-gallery-input');
+      if (mG) mG.onchange = function(e) { if (e.target.files.length) handleModalImg(e.target.files[0]); };
+
+      var rC = document.getElementById('recce-camera-input');
+      if (rC) rC.onchange = function(e) { if (e.target.files.length) handleIncomingFiles(e.target.files); };
+      var rG = document.getElementById('recce-gallery-input');
+      if (rG) rG.onchange = function(e) { if (e.target.files.length) handleIncomingFiles(e.target.files); };
+
+      var mForm = document.getElementById("modalStaffForm");
+      if (mForm) {
+        mForm.onsubmit = function(e) {
           e.preventDefault();
-          window.searchAddress();
-        }
-      };
-    }
-
-    var recceForm = document.getElementById("recceForm");
-    if (recceForm) {
-      recceForm.onsubmit = function(e) {
-        e.preventDefault();
-        var locationName = document.getElementById("recce-location").value.trim();
-        var officer = document.getElementById("recce-officer").value.trim();
-        var desc = document.getElementById("recce-desc").value.trim();
-        var venueGmapsVal = document.getElementById("recce-venue-gmaps").value.trim();
-        var confirmBox = document.getElementById("recce-confirm-checkbox");
-
-        if (!confirmBox.checked) {
-          alert("Please confirm the review checkbox before submitting.");
-          return;
-        }
-
-        if (!venueCoords && !venueGmapsVal) {
-          alert("Please set a venue location on the map before submitting.");
-          return;
-        }
-
-        var confirmed = confirm(
-          "SUBMIT RECCE REPORT?\n\n" +
-          "• Venue: " + locationName + "\n" +
-          "• Officer: " + officer + "\n" +
-          "• Photos: " + reccePhotos.length + " (Optimized)\n" +
-          "• Map View: " + (currentMapLayer === 'satellite' ? 'Satellite Hybrid' : 'Street Map') + "\n\n" +
-          "Generate PDF and save to Google Drive?"
-        );
-
-        if (!confirmed) return;
-
-        var btn = document.getElementById("recceSubmitBtn");
-        btn.disabled = true;
-        btn.innerText = "Generating PDF & Uploading (" + reccePhotos.length + " photos)...";
-        btn.style.backgroundColor = "#475569";
-
-        var payload = {
-          formType: "Recce",
-          locationName: locationName,
-          officer: officer,
-          date: document.getElementById("recce-date").value,
-          description: desc,
-          googleMapsUrl: venueGmapsVal,
-          parkingGoogleMapsUrl: document.getElementById("recce-parking-gmaps").value.trim(),
-          wazeUrl: document.getElementById("recce-waze").value.trim(),
-          lat: venueCoords ? venueCoords.lat : "0",
-          lng: venueCoords ? venueCoords.lng : "0",
-          parkingLat: parkingCoords ? parkingCoords.lat : "",
-          parkingLng: parkingCoords ? parkingCoords.lng : "",
-          photos: reccePhotos,
-          mapLayer: currentMapLayer
+          var btn = document.getElementById("modalSubmitBtn");
+          btn.disabled = true; btn.innerText = "Saving...";
+          var payload = {
+            action: "saveStaffProfile",
+            rowIndex: document.getElementById("modal-p-row").value || "",
+            existingPhotoFormula: document.getElementById("modal-p-existing-photo").value || "",
+            photoBase64: personnelPhotoBase64,
+            name: document.getElementById("modal-p-name").value.trim(),
+            nickname: document.getElementById("modal-p-nickname").value.trim(),
+            jobTitle: document.getElementById("modal-p-position").value.trim(),
+            startDate: document.getElementById("modal-p-startdate").value,
+            phone: document.getElementById("modal-p-phone").value.trim(),
+            emergency: document.getElementById("modal-p-emergency").value.trim(),
+            allergies: document.getElementById("modal-p-allergies").value.trim()
+          };
+          fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) })
+            .then(function() {
+              alert("Saved successfully.");
+              btn.disabled = false; btn.innerText = "Save Staff Profile";
+              window.closeStaffModal(); loadStaffRoster();
+            }).catch(function(err) { alert("Error: " + err.message); btn.disabled = false; });
         };
+      }
 
-        fetch(webAppUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        }).then(function() {
-          alert("Report submitted successfully.");
-          btn.disabled = false;
-          btn.innerText = "Generate & Submit Recce PDF";
-          btn.style.backgroundColor = "#7c3aed";
-          document.getElementById("recceForm").reset();
-          window.clearLocation();
-          reccePhotos = [];
-          var previewGrid = document.getElementById("photo-preview-grid");
-          if (previewGrid) previewGrid.innerHTML = "";
-          var countDisplay = document.getElementById("photo-count");
-          if (countDisplay) countDisplay.innerText = "0 photos attached";
-          var dRecce = document.getElementById('recce-date');
-          if (dRecce) dRecce.valueAsDate = new Date();
-          recceReportsCache = [];
-          window.goBack();
-        }).catch(function(err) {
-          alert("Network error: " + err.message);
-          btn.disabled = false;
-          btn.innerText = "Generate & Submit Recce PDF";
-          btn.style.backgroundColor = "#7c3aed";
-          document.getElementById('recce-status-message').innerText = "Upload error: " + err;
-          document.getElementById('recce-status-message').className = "error";
-        });
-      };
-    }
+      var rForm = document.getElementById("recceForm");
+      if (rForm) {
+        rForm.onsubmit = function(e) {
+          e.preventDefault();
+          if (!document.getElementById("recce-confirm-checkbox").checked) { alert("Check confirmation."); return; }
+          var btn = document.getElementById("recceSubmitBtn");
+          btn.disabled = true; btn.innerText = "Submitting...";
 
-    var logForm = document.getElementById("logForm");
-    if (logForm) {
-      logForm.onsubmit = function(event) {
-        event.preventDefault();
-        var logConfirm = document.getElementById("log-confirm-checkbox");
-        if (!logConfirm.checked) {
-          alert("Please confirm the entry before submitting.");
-          return;
-        }
+          var payload = {
+            formType: "Recce",
+            locationName: document.getElementById("recce-location").value.trim(),
+            officer: document.getElementById("recce-officer").value.trim(),
+            date: document.getElementById("recce-date").value,
+            description: document.getElementById("recce-desc").value.trim(),
+            googleMapsUrl: document.getElementById("recce-venue-gmaps").value.trim(),
+            parkingGoogleMapsUrl: document.getElementById("recce-parking-gmaps").value.trim(),
+            wazeUrl: document.getElementById("recce-waze").value.trim(),
+            lat: venueCoords ? venueCoords.lat : "0",
+            lng: venueCoords ? venueCoords.lng : "0",
+            parkingLat: parkingCoords ? parkingCoords.lat : "",
+            parkingLng: parkingCoords ? parkingCoords.lng : "",
+            photos: reccePhotos,
+            mapLayer: currentMapLayer
+          };
 
-        var confirmed = confirm("Submit this log entry?");
-        if (!confirmed) return;
-
-        var btn = document.getElementById("submitBtn");
-        btn.disabled = true;
-        btn.innerText = "Uploading...";
-        btn.style.backgroundColor = "#475569";
-
-        var payload = {
-          formType: "Log",
-          column2: document.getElementById("name").value,
-          column3: document.getElementById("date").value,
-          column4: document.getElementById("type").value,
-          column5: document.getElementById("remarks").value,
-          column6: document.getElementById("status").value,
-          column7: document.getElementById("evidence").value,
-          imageBase64: base64Image,
-          fileName: fileName,
-          mimeType: mimeType
+          fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) })
+            .then(function() {
+              alert("Report submitted.");
+              btn.disabled = false; btn.innerText = "Generate & Submit Recce PDF";
+              rForm.reset(); window.clearLocation(); reccePhotos = [];
+              renderPhotoPreviews(); recceReportsCache = []; window.goBack();
+            }).catch(function(err) { alert("Error: " + err.message); btn.disabled = false; });
         };
+      }
 
-        fetch(webAppUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(payload)
-        }).then(function() {
-          alert("Log entry submitted.");
-          btn.disabled = false;
-          btn.innerText = "Submit Log Entry";
-          btn.style.backgroundColor = "#2563eb";
-          document.getElementById("logForm").reset();
-          window.clearLogFile();
-          document.getElementById('form-title').innerText = "Security Log";
-          var dLog = document.getElementById('date');
-          if (dLog) dLog.valueAsDate = new Date();
-          window.goBack();
-        }).catch(function(err) {
-          alert("Log error: " + err.message);
-          btn.disabled = false;
-          btn.innerText = "Submit Log Entry";
-          btn.style.backgroundColor = "#2563eb";
-          document.getElementById('status-message').innerText = "Error sending data.";
-          document.getElementById('status-message').className = "error";
-        });
-      };
-    }
-  };
-</script>
+      var lForm = document.getElementById("logForm");
+      if (lForm) {
+        lForm.onsubmit = function(e) {
+          e.preventDefault();
+          if (!document.getElementById("log-confirm-checkbox").checked) { alert("Check confirmation."); return; }
+          var btn = document.getElementById("submitBtn");
+          btn.disabled = true; btn.innerText = "Submitting...";
+
+          var payload = {
+            formType: "Log",
+            column2: document.getElementById("name").value,
+            column3: document.getElementById("date").value,
+            column4: document.getElementById("type").value,
+            column5: document.getElementById("remarks").value,
+            column6: document.getElementById("status").value,
+            column7: document.getElementById("evidence").value,
+            imageBase64: base64Image,
+            fileName: fileName,
+            mimeType: mimeType
+          };
+
+          fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) })
+            .then(function() {
+              alert("Log submitted.");
+              btn.disabled = false; btn.innerText = "Submit Log Entry";
+              lForm.reset(); window.clearLogFile(); window.goBack();
+            }).catch(function(err) { alert("Error: " + err.message); btn.disabled = false; });
+        };
+      }
+    };
+  </script>
+</body>
+</html>
