@@ -375,7 +375,7 @@
     }
 
     /* ==========================================================================
-       STAFF ROSTER TABLE & AVATAR POPUPS (UPDATED: 76px SQUARE)
+       STAFF ROSTER TABLE & AVATAR POPUPS (76px SQUARE)
        ========================================================================== */
     .roster-table-container {
       width: 100%;
@@ -665,7 +665,7 @@
 
   <!-- 3. PERSONNEL ROSTER VIEW -->
   <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: gap; gap: 8px;">
       <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
       <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #2563eb; color: #fff; border: none; font-weight: bold;" onclick="openAddStaffModal()">+ Add Staff</button>
     </div>
@@ -718,6 +718,12 @@
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
         <button type="button" id="btn-mode-venue" class="back-btn" style="flex: 1; margin: 0; background-color: #dc2626; color: white; border: none;" onclick="setPinMode('venue')">📍 Pin Venue</button>
         <button type="button" id="btn-mode-parking" class="back-btn" style="flex: 1; margin: 0; background-color: var(--panel-bg); color: var(--text-secondary);" onclick="setPinMode('parking')">🅿️ Pin Parking</button>
+      </div>
+
+      <!-- Map Layer Switcher (Streets vs Satellite) -->
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <button type="button" id="btn-layer-streets" class="back-btn" style="flex: 1; margin: 0; background-color: var(--panel-bg); color: var(--text-secondary);" onclick="setMapLayer('streets')">🗺️ Streets</button>
+        <button type="button" id="btn-layer-satellite" class="back-btn" style="flex: 1; margin: 0; background-color: #0d9488; color: white; border: none; font-weight: bold;" onclick="setMapLayer('satellite')">🛰️ Satellite</button>
       </div>
 
       <div style="display: flex; gap: 8px; margin-bottom: 8px;">
@@ -941,6 +947,11 @@
     var parkingCoords = null;
     var venueMarker = null;
     var parkingMarker = null;
+
+    // Recce Map Layer State & Leaflet Tiles
+    var currentMapLayer = 'satellite'; // Default to Satellite
+    var streetTileLayer = null;
+    var satelliteTileLayer = null;
 
     var currentModalLang = 'en';
     var modalI18n = {
@@ -1579,8 +1590,8 @@
                 '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">' +
                   '<div style="display: flex; gap: 6px; flex: 1;">' +
                     '<button type="button" class="item-file-btn" id="btn-action-cam-' + item.rowIndex + '" style="background-color: #16a34a;" onclick="triggerActionCamera(' + item.rowIndex + ')">📷 Take Photo</button>' +
-                    '<button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color: #2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Upload Doc</button>' +
-                  '</div>' +
+                    '<button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color: #2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Upload Doc</button>
+                  </div>' +
                   '<span id="action-file-count-' + item.rowIndex + '" style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">0 / 3 attached</span>' +
                 '</div>' +
 
@@ -1746,6 +1757,48 @@
       }
     };
 
+    window.setMapLayer = function(layerType) {
+      currentMapLayer = layerType;
+      var btnStreets = document.getElementById('btn-layer-streets');
+      var btnSat = document.getElementById('btn-layer-satellite');
+
+      if (layerType === 'satellite') {
+        if (recceMap && streetTileLayer && satelliteTileLayer) {
+          recceMap.removeLayer(streetTileLayer);
+          satelliteTileLayer.addTo(recceMap);
+        }
+        if (btnSat) {
+          btnSat.style.backgroundColor = '#0d9488';
+          btnSat.style.color = '#fff';
+          btnSat.style.fontWeight = 'bold';
+          btnSat.style.border = 'none';
+        }
+        if (btnStreets) {
+          btnStreets.style.backgroundColor = 'var(--panel-bg)';
+          btnStreets.style.color = 'var(--text-secondary)';
+          btnStreets.style.fontWeight = 'normal';
+          btnStreets.style.border = '1px solid var(--border-color)';
+        }
+      } else {
+        if (recceMap && streetTileLayer && satelliteTileLayer) {
+          recceMap.removeLayer(satelliteTileLayer);
+          streetTileLayer.addTo(recceMap);
+        }
+        if (btnStreets) {
+          btnStreets.style.backgroundColor = '#2563eb';
+          btnStreets.style.color = '#fff';
+          btnStreets.style.fontWeight = 'bold';
+          btnStreets.style.border = 'none';
+        }
+        if (btnSat) {
+          btnSat.style.backgroundColor = 'var(--panel-bg)';
+          btnSat.style.color = 'var(--text-secondary)';
+          btnSat.style.fontWeight = 'normal';
+          btnSat.style.border = '1px solid var(--border-color)';
+        }
+      }
+    };
+
     function initRecceMap() {
       try {
         var container = document.getElementById('recce-map-container');
@@ -1753,10 +1806,19 @@
 
         if (!recceMap) {
           recceMap = L.map('recce-map-container').setView([32.5206, 34.9037], 13);
-          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+
+          streetTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
             attribution: 'Tiles &copy; Esri'
-          }).addTo(recceMap);
+          });
+
+          satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri World Imagery'
+          });
+
+          // Add default layer (Satellite)
+          satelliteTileLayer.addTo(recceMap);
 
           recceMap.on('click', function(e) {
             handleMapClick(e.latlng.lat, e.latlng.lng);
@@ -2189,7 +2251,8 @@
             "SUBMIT RECCE REPORT?\n\n" +
             "• Venue: " + locationName + "\n" +
             "• Officer: " + officer + "\n" +
-            "• Photos: " + reccePhotos.length + "\n\n" +
+            "• Photos: " + reccePhotos.length + "\n" +
+            "• Map View: " + (currentMapLayer === 'satellite' ? 'Satellite Hybrid' : 'Street Map') + "\n\n" +
             "Generate PDF and save to Google Drive?"
           );
 
@@ -2213,7 +2276,8 @@
             lng: venueCoords ? venueCoords.lng : "0",
             parkingLat: parkingCoords ? parkingCoords.lat : "",
             parkingLng: parkingCoords ? parkingCoords.lng : "",
-            photos: reccePhotos
+            photos: reccePhotos,
+            mapLayer: currentMapLayer
           };
 
           fetch(webAppUrl, {
