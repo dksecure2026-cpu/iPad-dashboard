@@ -596,6 +596,61 @@
       height: 100%;
       object-fit: cover;
     }
+
+    /* Emergency Hospital Quick Route Bar */
+    .emergency-hospital-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .btn-emergency-action {
+      width: 100%;
+      min-height: 48px;
+      background: #b91c1c;
+      color: #ffffff;
+      border: 1px solid #ef4444;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: filter 0.15s ease, transform 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-emergency-action:active {
+      filter: brightness(0.85);
+      transform: scale(0.99);
+    }
+
+    .btn-emergency-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .nav-shortcut-btn {
+      padding: 10px 12px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+    }
+
+    .nav-shortcut-btn:active {
+      filter: brightness(0.9);
+    }
   </style>
 </head>
 <body>
@@ -850,14 +905,43 @@
     <iframe src="https://calendar.google.com/calendar/embed?src=c_2a435d41777a365d165b71c9130adc35098df34b693919c1a47a0b63c3480a70@group.calendar.google.com&wkst=1&bgcolor=%231e2229&ctz=Asia%2FJerusalem&mode=MONTH" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
   </div>
 
-  <!-- 7. PERIMETER & ASSETS MAP VIEW -->
+  <!-- 7. PERIMETER & ASSETS MAP VIEW WITH EMERGENCY HOSPITAL LOCATOR -->
   <div id="map-view" class="card wide-card">
-    <button type="button" class="back-btn" onclick="goBack()">← Back to Menu</button>
-    <div class="status-bar" style="margin-bottom: 14px;">
-      <h2 style="margin: 0; font-size: 18px; color: #fff;">Perimeter & Assets Map</h2>
-      <div class="sys-beacon">MAP VIEW</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
+      <div class="sys-beacon">ASSETS & EMERGENCY</div>
     </div>
-    <iframe src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="600" frameborder="0" scrolling="no"></iframe>
+
+    <!-- Emergency Hospital Locator Bar -->
+    <div class="emergency-hospital-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <button type="button" class="btn-emergency-action" id="btn-find-hospital" onclick="findNearestHospital()">
+          🚨 Emergency: Locate Nearest Hospital
+        </button>
+      </div>
+
+      <!-- Emergency Result Card (hidden until triggered) -->
+      <div id="hospital-result-card" style="display: none; margin-top: 10px; background: rgba(220, 38, 38, 0.12); border: 1px solid #ef4444; border-radius: 8px; padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div id="hospital-name" style="font-size: 15px; font-weight: 700; color: #f87171;">Searching...</div>
+            <div id="hospital-meta" style="font-size: 12px; color: #cbd5e1; margin-top: 3px;">Distance: calculating...</div>
+          </div>
+          <span style="font-size: 20px;">🏥</span>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <a id="btn-hospital-waze" href="#" target="_blank" class="nav-shortcut-btn" style="background-color: #0284c7; flex: 1; text-align: center;">
+            🚙 Open in Waze
+          </a>
+          <a id="btn-hospital-gmaps" href="#" target="_blank" class="nav-shortcut-btn" style="background-color: #16a34a; flex: 1; text-align: center;">
+            🗺️ Open Google Maps
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <iframe id="perimeter-map-iframe" src="https://www.google.com/maps/d/u/0/embed?mid=15fLZ7_XkVsgFVSFTH87y_DJthMB5TU0&ehbc=2E312F" width="100%" height="560" frameborder="0" scrolling="no"></iframe>
   </div>
 
   <!-- 8. IPAD STAFF MODAL WITH MULTI-LANGUAGE SELECTOR -->
@@ -2070,6 +2154,91 @@
         });
       });
     }
+
+    // ==========================================================================
+    // EMERGENCY HOSPITAL LOCATOR LOGIC
+    // ==========================================================================
+    var REGIONAL_HOSPITALS = [
+      { name: "Hillel Yaffe Medical Center (Hadera)", lat: 32.449755, lng: 34.908492 },
+      { name: "Laniado Hospital (Netanya)", lat: 32.348611, lng: 34.857222 },
+      { name: "Rambam Health Care Campus (Haifa)", lat: 32.833333, lng: 34.986111 },
+      { name: "Bnai Zion Medical Center (Haifa)", lat: 32.810833, lng: 34.990278 },
+      { name: "Carmel Medical Center (Haifa)", lat: 32.795833, lng: 34.981944 },
+      { name: "Meir Medical Center (Kfar Saba)", lat: 32.179444, lng: 34.912500 }
+    ];
+
+    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+      var R = 6371; // Earth radius in km
+      var dLat = (lat2 - lat1) * Math.PI / 180;
+      var dLon = (lon2 - lon1) * Math.PI / 180;
+      var a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    window.findNearestHospital = function() {
+      var btn = document.getElementById('btn-find-hospital');
+      var card = document.getElementById('hospital-result-card');
+      var nameEl = document.getElementById('hospital-name');
+      var metaEl = document.getElementById('hospital-meta');
+      var btnWaze = document.getElementById('btn-hospital-waze');
+      var btnGmaps = document.getElementById('btn-hospital-gmaps');
+
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your device/browser.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "⏳ Acquiring GPS & Routing...";
+      card.style.display = "block";
+      nameEl.innerText = "Acquiring precise satellite GPS...";
+      metaEl.innerText = "Calculating closest emergency trauma bay...";
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          var userLat = pos.coords.latitude;
+          var userLng = pos.coords.longitude;
+
+          var closest = null;
+          var minDistance = Infinity;
+
+          REGIONAL_HOSPITALS.forEach(function(hosp) {
+            var dist = calculateDistanceKm(userLat, userLng, hosp.lat, hosp.lng);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closest = hosp;
+            }
+          });
+
+          if (closest) {
+            var estDriveMinutes = Math.round((minDistance / 55) * 60) + 3; // 55 km/h avg speed + 3 min ramp
+            
+            nameEl.innerText = closest.name;
+            metaEl.innerText = "Straight-line: " + minDistance.toFixed(1) + " km | Est. drive: ~" + estDriveMinutes + " mins";
+
+            btnWaze.href = "https://waze.com/ul?ll=" + closest.lat + "," + closest.lng + "&navigate=yes";
+            btnGmaps.href = "https://www.google.com/maps/dir/?api=1&destination=" + closest.lat + "," + closest.lng + "&travelmode=driving";
+          } else {
+            nameEl.innerText = "No predefined hospital found";
+            metaEl.innerText = "Please check network or manual search.";
+          }
+
+          btn.disabled = false;
+          btn.innerText = "🔄 Update Nearest Hospital";
+        },
+        function(err) {
+          btn.disabled = false;
+          btn.innerText = "🚨 Emergency: Locate Nearest Hospital";
+          nameEl.innerText = "GPS Error";
+          metaEl.innerText = "Could not get current coordinates: " + err.message;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    };
 
     window.onload = function() {
       var d1 = document.getElementById('date');
