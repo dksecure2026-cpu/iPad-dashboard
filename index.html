@@ -1181,8 +1181,8 @@
     };
 
     function toBase64(file, maxDim, quality) {
-      maxDim = maxDim || 1200;
-      quality = quality || 0.65;
+      maxDim = maxDim || 1000;
+      quality = quality || 0.6;
       return new Promise(function(resolve, reject) {
         if (!file) return reject(new Error("No file"));
         var img = new Image();
@@ -1204,7 +1204,6 @@
           var ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           var result = canvas.toDataURL('image/jpeg', quality);
-          ctx.clearRect(0, 0, width, height);
           canvas.width = 1;
           canvas.height = 1;
           resolve(result);
@@ -1216,6 +1215,162 @@
         img.src = objectUrl;
       });
     }
+
+    // --- GLOBAL JSONP CALLBACK ROUTERS ---
+    window.handleRecceReportsCallback = function(response) {
+      var statusDiv = document.getElementById('recce-folder-status');
+      var grid = document.getElementById('recce-folder-grid');
+      var oldScript = document.getElementById('jsonp-recce-reports');
+      if (oldScript) oldScript.remove();
+
+      if (!response || !response.reports || response.reports.length === 0) {
+        statusDiv.innerText = "No Recce PDF reports found.";
+        grid.innerHTML = '<div style="color:var(--text-secondary);padding:20px;text-align:center;grid-column:1/-1;">No reports found.</div>';
+        recceReportsCache = [];
+        return;
+      }
+      recceReportsCache = response.reports;
+      statusDiv.innerText = "Showing " + recceReportsCache.length + " report(s):";
+      renderRecceButtons(recceReportsCache);
+    };
+
+    window.handleStaffRosterCallback = function(response) {
+      var statusDiv = document.getElementById('staff-status');
+      var tbody = document.getElementById('staff-roster-body');
+      var oldScript = document.getElementById('jsonp-staff-roster');
+      if (oldScript) oldScript.remove();
+
+      if (!response || !response.roster || response.roster.length === 0) {
+        statusDiv.innerText = "No staff records found.";
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No records.</td></tr>';
+        return;
+      }
+      staffRosterCache = response.roster.filter(function(r) { return !r.isEmpty; });
+      statusDiv.innerText = "Active Team Members (" + staffRosterCache.length + "):";
+      tbody.innerHTML = "";
+
+      staffRosterCache.forEach(function(m) {
+        var tr = document.createElement('tr');
+        tr.className = 'staff-row-clickable';
+        tr.onclick = function(e) { if (!e.target.closest('a')) openEditStaffModal(m.rowIndex); };
+
+        var initials = (m.name || "?").substring(0, 2).toUpperCase();
+        var hasPhoto = Boolean(m.photoUrl && m.photoUrl.trim() !== "");
+
+        var tdAv = document.createElement('td');
+        var wrapper = document.createElement('div');
+        wrapper.className = 'staff-avatar-wrapper';
+
+        if (hasPhoto) {
+          var img = document.createElement('img');
+          img.src = m.photoUrl;
+          img.className = 'staff-avatar-img';
+          img.alt = m.name || '';
+          img.onerror = function() { this.parentElement.innerHTML = '<div class="staff-avatar-placeholder">' + initials + '</div>'; };
+          wrapper.appendChild(img);
+        } else {
+          var ph = document.createElement('div');
+          ph.className = 'staff-avatar-placeholder';
+          ph.innerText = initials;
+          wrapper.appendChild(ph);
+        }
+
+        wrapper.onclick = function(e) {
+          e.stopPropagation();
+          if (!hasPhoto) { openEditStaffModal(m.rowIndex); return; }
+          document.querySelectorAll('.nickname-speech-bubble').forEach(function(b) { b.remove(); });
+          var bubble = document.createElement('div');
+          bubble.className = 'nickname-speech-bubble';
+          bubble.innerText = m.nickname ? ("🏷️ " + m.nickname) : ("👤 " + (m.name || 'Staff'));
+          wrapper.appendChild(bubble);
+          setTimeout(function() { if (bubble.parentNode) bubble.remove(); }, 2500);
+        };
+
+        tdAv.appendChild(wrapper);
+        tr.appendChild(tdAv);
+
+        var tdName = document.createElement('td');
+        tdName.innerHTML = '<div style="font-weight:600;color:#fff;">' + escapeHtml(m.name || 'Unknown') + '</div>';
+        tr.appendChild(tdName);
+
+        var tdRole = document.createElement('td');
+        tdRole.innerText = m.position || 'Staff';
+        tr.appendChild(tdRole);
+
+        var tdContact = document.createElement('td');
+        if (m.phone) {
+          var a = document.createElement('a');
+          a.href = 'tel:' + m.phone;
+          a.className = 'staff-phone-link';
+          a.innerText = '📞 ' + m.phone;
+          a.onclick = function(e) { e.stopPropagation(); };
+          tdContact.appendChild(a);
+        } else { tdContact.innerText = '—'; }
+        tr.appendChild(tdContact);
+
+        var tdEmerg = document.createElement('td');
+        tdEmerg.style.fontSize = '12px';
+        tdEmerg.style.color = '#cbd5e1';
+        tdEmerg.innerText = m.emergency || '—';
+        tr.appendChild(tdEmerg);
+
+        tbody.appendChild(tr);
+      });
+    };
+
+    window.handleOpenItemsCallback = function(response) {
+      var statusDiv = document.getElementById('open-items-status');
+      var listDiv = document.getElementById('open-items-list');
+      var oldScript = document.getElementById('jsonp-open-items');
+      if (oldScript) oldScript.remove();
+
+      if (!response || !response.items || response.items.length === 0) {
+        statusDiv.innerText = "✓ All action items are resolved.";
+        listDiv.innerHTML = "";
+        return;
+      }
+      statusDiv.innerText = "Active Action Items (" + response.items.length + "):";
+      listDiv.innerHTML = "";
+
+      response.items.forEach(function(item) {
+        var card = document.createElement('div');
+        card.className = 'task-card';
+        var isPending = (item.status || '').toLowerCase() === 'pending';
+        var badgeColor = isPending ? '#fb923c' : '#f87171';
+        var badgeBg = isPending ? 'rgba(251, 146, 60, 0.15)' : 'rgba(248, 113, 113, 0.15)';
+
+        var evLink = item.evidence ? '<div style="margin-top:8px;"><a href="' + item.evidence + '" target="_blank" style="color:#60a5fa;font-weight:600;font-size:13px;text-decoration:none;">🔗 Evidence Link</a></div>' : '';
+
+        var updates = [];
+        if (Array.isArray(item.updates)) updates = item.updates;
+        else if (typeof item.updates === 'string' && item.updates.trim()) {
+          try { updates = JSON.parse(item.updates); } catch(e){}
+        }
+
+        var updatesHtml = updates.map(function(u) {
+          var atts = (u.attachments || []).map(function(a) {
+            return '<a href="' + (a.url || '#') + '" target="_blank" style="font-size:11px;color:#60a5fa;text-decoration:none;background:rgba(96,165,250,0.1);padding:2px 6px;border-radius:4px;border:1px solid #3b82f6;">📎 ' + escapeHtml(a.name || 'Doc') + '</a>';
+          }).join('');
+          return '<div class="update-bubble"><div class="update-meta"><span>' + escapeHtml(u.author || 'Officer') + '</span><span>' + formatDateDisplay(u.date) + '</span></div><div class="update-content">' + escapeHtml(u.text) + '</div>' + (atts ? '<div style="display:flex;gap:6px;margin-top:6px;">' + atts + '</div>' : '') + '</div>';
+        }).join('');
+
+        card.innerHTML = 
+          '<div style="display:flex;justify-content:space-between;align-items:center;"><span class="task-badge" style="background:' + badgeBg + ';color:' + badgeColor + ';border:1px solid ' + badgeColor + ';">' + item.status + '</span><span style="font-size:12px;color:var(--text-secondary);">' + (item.date || '') + ' | ' + (item.name || '') + '</span></div>' +
+          '<div style="font-size:15px;font-weight:600;margin:10px 0 6px 0;color:#fff;">' + (item.type || 'Log') + '</div>' +
+          '<div style="font-size:14px;line-height:1.5;color:#cbd5e1;white-space:pre-wrap;background:var(--card-bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border-color);">' + (item.remarks || 'No remarks') + '</div>' +
+          evLink +
+          '<div class="updates-section"><div class="updates-header">Activity</div><div class="updates-list" id="updates-list-' + item.rowIndex + '">' + updatesHtml + '</div>' +
+          '<div class="add-update-container"><textarea class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type follow-up note..." rows="2"></textarea>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;"><div style="display:flex;gap:6px;flex:1;"><button type="button" class="item-file-btn" id="btn-action-cam-' + item.rowIndex + '" style="background-color:#16a34a;" onclick="triggerActionCamera(' + item.rowIndex + ')">📷 Photo</button><button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color:#2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Doc</button></div><span id="action-file-count-' + item.rowIndex + '" style="font-size:11px;color:var(--text-secondary);margin-left:8px;">0 / 3</span></div>' +
+          '<input type="file" id="action-camera-input-' + item.rowIndex + '" accept="image/*" capture="environment" style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
+          '<input type="file" id="action-file-input-' + item.rowIndex + '" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
+          '<div id="action-attachments-' + item.rowIndex + '" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>' +
+          '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" onclick="addLogUpdate(' + item.rowIndex + ')">Post Update</button></div></div>' +
+          '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark Closed</button>';
+
+        listDiv.appendChild(card);
+      });
+    };
 
     function loadRecceReports(forceReload) {
       var statusDiv = document.getElementById('recce-folder-status');
@@ -1230,18 +1385,6 @@
 
       var oldScript = document.getElementById('jsonp-recce-reports');
       if (oldScript) oldScript.remove();
-
-      window.handleRecceReportsCallback = function(response) {
-        if (!response || !response.reports || response.reports.length === 0) {
-          statusDiv.innerText = "No Recce PDF reports found.";
-          grid.innerHTML = '<div style="color:var(--text-secondary);padding:20px;text-align:center;grid-column:1/-1;">No reports found.</div>';
-          recceReportsCache = [];
-          return;
-        }
-        recceReportsCache = response.reports;
-        statusDiv.innerText = "Showing " + recceReportsCache.length + " report(s):";
-        renderRecceButtons(recceReportsCache);
-      };
 
       var script = document.createElement('script');
       script.id = 'jsonp-recce-reports';
@@ -1320,7 +1463,7 @@
       if (file.type && file.type.startsWith('image/')) {
         nameSpan.innerText = "⏳ Compressing: " + fileName;
         statusBox.style.display = "flex";
-        toBase64(file, 1200, 0.65).then(function(b64) {
+        toBase64(file, 1000, 0.6).then(function(b64) {
           base64Image = b64.split(',')[1];
           mimeType = 'image/jpeg';
           nameSpan.innerText = "📷 " + fileName + " (Ready)";
@@ -1343,85 +1486,6 @@
 
       var oldScript = document.getElementById('jsonp-staff-roster');
       if (oldScript) oldScript.remove();
-
-      window.handleStaffRosterCallback = function(response) {
-        if (!response || !response.roster || response.roster.length === 0) {
-          statusDiv.innerText = "No staff records found.";
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No records.</td></tr>';
-          return;
-        }
-        staffRosterCache = response.roster.filter(function(r) { return !r.isEmpty; });
-        statusDiv.innerText = "Active Team Members (" + staffRosterCache.length + "):";
-        tbody.innerHTML = "";
-
-        staffRosterCache.forEach(function(m) {
-          var tr = document.createElement('tr');
-          tr.className = 'staff-row-clickable';
-          tr.onclick = function(e) { if (!e.target.closest('a')) openEditStaffModal(m.rowIndex); };
-
-          var initials = (m.name || "?").substring(0, 2).toUpperCase();
-          var hasPhoto = Boolean(m.photoUrl && m.photoUrl.trim() !== "");
-
-          var tdAv = document.createElement('td');
-          var wrapper = document.createElement('div');
-          wrapper.className = 'staff-avatar-wrapper';
-
-          if (hasPhoto) {
-            var img = document.createElement('img');
-            img.src = m.photoUrl;
-            img.className = 'staff-avatar-img';
-            img.alt = m.name || '';
-            img.onerror = function() { this.parentElement.innerHTML = '<div class="staff-avatar-placeholder">' + initials + '</div>'; };
-            wrapper.appendChild(img);
-          } else {
-            var ph = document.createElement('div');
-            ph.className = 'staff-avatar-placeholder';
-            ph.innerText = initials;
-            wrapper.appendChild(ph);
-          }
-
-          wrapper.onclick = function(e) {
-            e.stopPropagation();
-            if (!hasPhoto) { openEditStaffModal(m.rowIndex); return; }
-            document.querySelectorAll('.nickname-speech-bubble').forEach(function(b) { b.remove(); });
-            var bubble = document.createElement('div');
-            bubble.className = 'nickname-speech-bubble';
-            bubble.innerText = m.nickname ? ("🏷️ " + m.nickname) : ("👤 " + (m.name || 'Staff'));
-            wrapper.appendChild(bubble);
-            setTimeout(function() { if (bubble.parentNode) bubble.remove(); }, 2500);
-          };
-
-          tdAv.appendChild(wrapper);
-          tr.appendChild(tdAv);
-
-          var tdName = document.createElement('td');
-          tdName.innerHTML = '<div style="font-weight:600;color:#fff;">' + escapeHtml(m.name || 'Unknown') + '</div>';
-          tr.appendChild(tdName);
-
-          var tdRole = document.createElement('td');
-          tdRole.innerText = m.position || 'Staff';
-          tr.appendChild(tdRole);
-
-          var tdContact = document.createElement('td');
-          if (m.phone) {
-            var a = document.createElement('a');
-            a.href = 'tel:' + m.phone;
-            a.className = 'staff-phone-link';
-            a.innerText = '📞 ' + m.phone;
-            a.onclick = function(e) { e.stopPropagation(); };
-            tdContact.appendChild(a);
-          } else { tdContact.innerText = '—'; }
-          tr.appendChild(tdContact);
-
-          var tdEmerg = document.createElement('td');
-          tdEmerg.style.fontSize = '12px';
-          tdEmerg.style.color = '#cbd5e1';
-          tdEmerg.innerText = m.emergency || '—';
-          tr.appendChild(tdEmerg);
-
-          tbody.appendChild(tr);
-        });
-      };
 
       var script = document.createElement('script');
       script.id = 'jsonp-staff-roster';
@@ -1527,7 +1591,7 @@
       incoming.forEach(function(file) {
         chain = chain.then(function() {
           if (file.type && file.type.startsWith('image/')) {
-            return toBase64(file, 1200, 0.65).then(function(b64) {
+            return toBase64(file, 1000, 0.6).then(function(b64) {
               cur.push({ name: file.name || ('photo_' + Date.now() + '.jpg'), mimeType: 'image/jpeg', base64: b64.split(',')[1] });
               renderActionAttachments(rowIndex);
             });
@@ -1590,54 +1654,6 @@
 
       var oldScript = document.getElementById('jsonp-open-items');
       if (oldScript) oldScript.remove();
-
-      window.handleOpenItemsCallback = function(response) {
-        if (!response || !response.items || response.items.length === 0) {
-          statusDiv.innerText = "✓ All action items are resolved.";
-          return;
-        }
-        statusDiv.innerText = "Active Action Items (" + response.items.length + "):";
-        listDiv.innerHTML = "";
-
-        response.items.forEach(function(item) {
-          var card = document.createElement('div');
-          card.className = 'task-card';
-          var isPending = (item.status || '').toLowerCase() === 'pending';
-          var badgeColor = isPending ? '#fb923c' : '#f87171';
-          var badgeBg = isPending ? 'rgba(251, 146, 60, 0.15)' : 'rgba(248, 113, 113, 0.15)';
-
-          var evLink = item.evidence ? '<div style="margin-top:8px;"><a href="' + item.evidence + '" target="_blank" style="color:#60a5fa;font-weight:600;font-size:13px;text-decoration:none;">🔗 Evidence Link</a></div>' : '';
-
-          var updates = [];
-          if (Array.isArray(item.updates)) updates = item.updates;
-          else if (typeof item.updates === 'string' && item.updates.trim()) {
-            try { updates = JSON.parse(item.updates); } catch(e){}
-          }
-
-          var updatesHtml = updates.map(function(u) {
-            var atts = (u.attachments || []).map(function(a) {
-              return '<a href="' + (a.url || '#') + '" target="_blank" style="font-size:11px;color:#60a5fa;text-decoration:none;background:rgba(96,165,250,0.1);padding:2px 6px;border-radius:4px;border:1px solid #3b82f6;">📎 ' + escapeHtml(a.name || 'Doc') + '</a>';
-            }).join('');
-            return '<div class="update-bubble"><div class="update-meta"><span>' + escapeHtml(u.author || 'Officer') + '</span><span>' + formatDateDisplay(u.date) + '</span></div><div class="update-content">' + escapeHtml(u.text) + '</div>' + (atts ? '<div style="display:flex;gap:6px;margin-top:6px;">' + atts + '</div>' : '') + '</div>';
-          }).join('');
-
-          card.innerHTML = 
-            '<div style="display:flex;justify-content:space-between;align-items:center;"><span class="task-badge" style="background:' + badgeBg + ';color:' + badgeColor + ';border:1px solid ' + badgeColor + ';">' + item.status + '</span><span style="font-size:12px;color:var(--text-secondary);">' + (item.date || '') + ' | ' + (item.name || '') + '</span></div>' +
-            '<div style="font-size:15px;font-weight:600;margin:10px 0 6px 0;color:#fff;">' + (item.type || 'Log') + '</div>' +
-            '<div style="font-size:14px;line-height:1.5;color:#cbd5e1;white-space:pre-wrap;background:var(--card-bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border-color);">' + (item.remarks || 'No remarks') + '</div>' +
-            evLink +
-            '<div class="updates-section"><div class="updates-header">Activity</div><div class="updates-list" id="updates-list-' + item.rowIndex + '">' + updatesHtml + '</div>' +
-            '<div class="add-update-container"><textarea class="update-input-field" id="update-input-' + item.rowIndex + '" placeholder="Type follow-up note..." rows="2"></textarea>' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;"><div style="display:flex;gap:6px;flex:1;"><button type="button" class="item-file-btn" id="btn-action-cam-' + item.rowIndex + '" style="background-color:#16a34a;" onclick="triggerActionCamera(' + item.rowIndex + ')">📷 Photo</button><button type="button" class="item-file-btn" id="btn-action-file-' + item.rowIndex + '" style="background-color:#2563eb;" onclick="triggerActionFilePicker(' + item.rowIndex + ')">📁 Doc</button></div><span id="action-file-count-' + item.rowIndex + '" style="font-size:11px;color:var(--text-secondary);margin-left:8px;">0 / 3</span></div>' +
-            '<input type="file" id="action-camera-input-' + item.rowIndex + '" accept="image/*" capture="environment" style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
-            '<input type="file" id="action-file-input-' + item.rowIndex + '" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple style="display:none;" onchange="handleActionFiles(' + item.rowIndex + ', this.files)">' +
-            '<div id="action-attachments-' + item.rowIndex + '" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>' +
-            '<button type="button" class="btn-add-update" id="btn-update-' + item.rowIndex + '" onclick="addLogUpdate(' + item.rowIndex + ')">Post Update</button></div></div>' +
-            '<button type="button" class="close-item-btn" id="btn-close-' + item.rowIndex + '" onclick="closeLogItem(' + item.rowIndex + ')">✓ Mark Closed</button>';
-
-          listDiv.appendChild(card);
-        });
-      };
 
       var script = document.createElement('script');
       script.id = 'jsonp-open-items';
@@ -1843,7 +1859,7 @@
       var chain = Promise.resolve();
       batch.forEach(function(f) {
         chain = chain.then(function() {
-          return toBase64(f, 1200, 0.65).then(function(b64) {
+          return toBase64(f, 1000, 0.6).then(function(b64) {
             reccePhotos.push({ base64: b64.split(',')[1], mimeType: "image/jpeg", name: f.name || ('photo_' + Date.now() + '.jpg') });
             renderPhotoPreviews();
           });
