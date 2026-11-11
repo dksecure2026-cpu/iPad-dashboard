@@ -52,11 +52,12 @@
     }
 
     .brand-logo-img {
-      max-height: 82px;
+      max-height: 90px;
       width: auto;
+      max-width: 100%;
       object-fit: contain;
-      filter: invert(1) brightness(1.2);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      display: inline-block;
     }
 
     .status-bar {
@@ -669,7 +670,7 @@
   <!-- 1. MAIN DASHBOARD MENU -->
   <div id="dashboard-view" class="card">
     <div class="brand-header">
-     <img src="logo.png" alt="WHITEBANNER" class="brand-logo-img">
+      <img src="logo.png" alt="ISR LOGO" class="brand-logo-img">
       <div class="status-bar">
         <span>SECURITY OPERATIONS</span>
         <div class="sys-beacon">ACTIVE / SYNCED</div>
@@ -706,7 +707,7 @@
       <span class="dash-btn-sub">Duty Schedule</span>
     </button>
 
-   <button type="button" class="dash-btn btn-map" onclick="openMap()">
+    <button type="button" class="dash-btn btn-map" onclick="openMap()">
       <span>Emergency Hospital Locations</span>
       <span class="dash-btn-sub">Medical Centers</span>
     </button>
@@ -749,7 +750,7 @@
 
   <!-- 4. PERSONNEL ROSTER VIEW -->
   <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: gap: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
       <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #2563eb; color: #fff; border: none; font-weight: bold;" onclick="openAddStaffModal()">+ Add Staff</button>
     </div>
@@ -1180,7 +1181,6 @@
       if (s2) s2.innerText = "";
     };
 
-    // Compact image compression to guarantee small payload sizes for Apps Script
     function toBase64(file, maxDim, quality) {
       maxDim = maxDim || 800;
       quality = quality || 0.55;
@@ -1217,7 +1217,6 @@
       });
     }
 
-    // --- GLOBAL JSONP CALLBACK ROUTERS ---
     window.handleRecceReportsCallback = function(response) {
       var statusDiv = document.getElementById('recce-folder-status');
       var grid = document.getElementById('recce-folder-grid');
@@ -2009,7 +2008,6 @@
 
           fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) })
             .then(function() {
-              // Wait 5 seconds for DriveApp & DocumentApp to compile the PDF before reloading
               setTimeout(function() {
                 alert("✓ Recce Report generated and saved to Drive.");
                 btn.disabled = false; 
@@ -2018,9 +2016,8 @@
                 window.clearLocation(); 
                 reccePhotos = [];
                 renderPhotoPreviews(); 
-                recceReportsCache = []; // Wipe local cache
+                recceReportsCache = [];
                 
-                // Open folder view and trigger forced sync
                 window.openRecceFolder();
                 loadRecceReports(true);
               }, 5000);
