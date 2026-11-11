@@ -749,7 +749,7 @@
 
   <!-- 4. PERSONNEL ROSTER VIEW -->
   <div id="personnel-view" class="card wide-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: gap: 8px;">
       <button type="button" class="back-btn" style="margin-bottom: 0;" onclick="goBack()">← Back to Menu</button>
       <button type="button" class="back-btn" style="margin-bottom: 0; background-color: #2563eb; color: #fff; border: none; font-weight: bold;" onclick="openAddStaffModal()">+ Add Staff</button>
     </div>
@@ -1180,9 +1180,10 @@
       if (s2) s2.innerText = "";
     };
 
+    // Compact image compression to guarantee small payload sizes for Apps Script
     function toBase64(file, maxDim, quality) {
-      maxDim = maxDim || 1000;
-      quality = quality || 0.6;
+      maxDim = maxDim || 800;
+      quality = quality || 0.55;
       return new Promise(function(resolve, reject) {
         if (!file) return reject(new Error("No file"));
         var img = new Image();
@@ -1463,7 +1464,7 @@
       if (file.type && file.type.startsWith('image/')) {
         nameSpan.innerText = "⏳ Compressing: " + fileName;
         statusBox.style.display = "flex";
-        toBase64(file, 1000, 0.6).then(function(b64) {
+        toBase64(file, 800, 0.55).then(function(b64) {
           base64Image = b64.split(',')[1];
           mimeType = 'image/jpeg';
           nameSpan.innerText = "📷 " + fileName + " (Ready)";
@@ -1591,7 +1592,7 @@
       incoming.forEach(function(file) {
         chain = chain.then(function() {
           if (file.type && file.type.startsWith('image/')) {
-            return toBase64(file, 1000, 0.6).then(function(b64) {
+            return toBase64(file, 800, 0.55).then(function(b64) {
               cur.push({ name: file.name || ('photo_' + Date.now() + '.jpg'), mimeType: 'image/jpeg', base64: b64.split(',')[1] });
               renderActionAttachments(rowIndex);
             });
@@ -1859,7 +1860,7 @@
       var chain = Promise.resolve();
       batch.forEach(function(f) {
         chain = chain.then(function() {
-          return toBase64(f, 1000, 0.6).then(function(b64) {
+          return toBase64(f, 800, 0.55).then(function(b64) {
             reccePhotos.push({ base64: b64.split(',')[1], mimeType: "image/jpeg", name: f.name || ('photo_' + Date.now() + '.jpg') });
             renderPhotoPreviews();
           });
@@ -1986,7 +1987,8 @@
           e.preventDefault();
           if (!document.getElementById("recce-confirm-checkbox").checked) { alert("Check confirmation."); return; }
           var btn = document.getElementById("recceSubmitBtn");
-          btn.disabled = true; btn.innerText = "Submitting...";
+          btn.disabled = true; 
+          btn.innerText = "⏳ Generating PDF & Saving to Drive (Please wait)...";
 
           var payload = {
             formType: "Recce",
@@ -2007,11 +2009,27 @@
 
           fetch(webAppUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) })
             .then(function() {
-              alert("Report submitted.");
-              btn.disabled = false; btn.innerText = "Generate & Submit Recce PDF";
-              rForm.reset(); window.clearLocation(); reccePhotos = [];
-              renderPhotoPreviews(); recceReportsCache = []; window.goBack();
-            }).catch(function(err) { alert("Error: " + err.message); btn.disabled = false; });
+              // Wait 5 seconds for DriveApp & DocumentApp to compile the PDF before reloading
+              setTimeout(function() {
+                alert("✓ Recce Report generated and saved to Drive.");
+                btn.disabled = false; 
+                btn.innerText = "Generate & Submit Recce PDF";
+                rForm.reset(); 
+                window.clearLocation(); 
+                reccePhotos = [];
+                renderPhotoPreviews(); 
+                recceReportsCache = []; // Wipe local cache
+                
+                // Open folder view and trigger forced sync
+                window.openRecceFolder();
+                loadRecceReports(true);
+              }, 5000);
+            })
+            .catch(function(err) { 
+              alert("Error: " + err.message); 
+              btn.disabled = false; 
+              btn.innerText = "Generate & Submit Recce PDF";
+            });
         };
       }
 
