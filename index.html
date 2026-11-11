@@ -52,12 +52,13 @@
     }
 
     .brand-logo-img {
-      max-height: 90px;
+      max-height: 140px;          /* Increased from 90px to make it larger */
       width: auto;
-      max-width: 100%;
+      max-width: 85%;             /* Allows the logo to stretch wider */
       object-fit: contain;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       display: inline-block;
+      mix-blend-mode: screen;      /* Drops out black backgrounds automatically */
     }
 
     .status-bar {
