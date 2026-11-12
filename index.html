@@ -1331,9 +1331,9 @@
         return;
       }
       statusDiv.innerText = "Active Action Items (" + response.items.length + "):";
-      listDiv.innerHTML = "";
+   listDiv.innerHTML = "";
 
-      response.items.forEach(function(item) {
+   response.items.slice().reverse().forEach(function(item) {
         var card = document.createElement('div');
         card.className = 'task-card';
         var isPending = (item.status || '').toLowerCase() === 'pending';
